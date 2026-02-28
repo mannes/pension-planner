@@ -48,8 +48,8 @@ export type ReturnScenario = keyof typeof RETURN_RATES
 export const DEFAULT_PARAMS: SimParams = {
   startingSalary: 45_000,
   salaryGrowthRate: 0.02,
-  employerPct: 0.10,
-  employeePct: 0.05,
+  employerPct: 0.015,
+  employeePct: 0.025,
   extraSavingsMonthly: 0,
   franchise: 17_545,
   franchiseGrowthRate: 0.015,

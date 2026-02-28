@@ -4,6 +4,7 @@ import { useTranslation } from '../context/LanguageContext'
 
 interface Props {
   result: YearlyResult   // year-1 data
+  realMode: boolean
 }
 
 const euro = (v: number) =>
@@ -37,7 +38,7 @@ function Row({ label, value, indent, negative, highlight, subtotal, accent }: Ro
   )
 }
 
-export function TaxLeveragePanel({ result }: Props) {
+export function TaxLeveragePanel({ result, realMode }: Props) {
   const { t } = useTranslation()
 
   const {
@@ -60,7 +61,13 @@ export function TaxLeveragePanel({ result }: Props) {
       <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-1">
         {t.taxPanel.title}
       </h2>
-      <p className="text-xs text-gray-500 mb-4">{t.taxPanel.subtitle}</p>
+      <p className="text-xs text-gray-500 mb-1">{t.taxPanel.subtitle}</p>
+      {realMode && (
+        <p className="text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-1.5 mb-4 inline-block">
+          {t.taxPanel.currentYearNote}
+        </p>
+      )}
+      {!realMode && <div className="mb-4" />}
 
       <div className="space-y-0.5">
         <Row label={t.taxPanel.grossSalary} value={euro(grossSalary)} />

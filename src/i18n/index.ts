@@ -53,6 +53,7 @@ export interface Translations {
     totalFunded: string
     leverageTitle: string
     leverageBody: (amount: string) => string
+    currentYearNote: string   // shown when realMode is active
   }
   capitalChart: {
     title: string
@@ -105,7 +106,11 @@ export interface Translations {
     pillar3None: string
     aow: string
     aowNote: string
-    totalMonthly: string
+    grossNote: string         // "(bruto)" shown next to each pillar bar
+    pensionTaxLabel: string   // tax deduction row label
+    pensionTaxNote: string    // short explanation of reduced retirement rate
+    netTotalLabel: string     // net monthly pension (after retirement tax)
+    totalMonthly: string      // kept for compatibility
     replacementRate: string
     targetNote: string
     statusGood: string
@@ -116,6 +121,8 @@ export interface Translations {
     statusLowNote: string
     scenarioLabel: string
     normalScenario: string
+    nominalWarningTitle: string
+    nominalWarningBody: string
   }
   warning: {
     title: string
@@ -200,6 +207,7 @@ const nl: Translations = {
     totalFunded: 'Totaal naar pensioenpot',
     leverageTitle: 'Hefboomverhouding',
     leverageBody: (amount) => `Voor elke netto euro die jij betaalt, gaat ${amount} naar jouw pensioen.`,
+    currentYearNote: '📍 Toont jaar-1 bedragen in huidige euro\'s — niet beïnvloed door de inflatie-schakelaar.',
   },
   capitalChart: {
     title: '📈 Pensioenkapitaal over de tijd',
@@ -240,7 +248,7 @@ const nl: Translations = {
     normalLabel: 'Normaal scenario',
     goodLabel: 'Goed scenario',
     ratePerYear: '%/jaar',
-    disclaimer: 'Het geschatte maandpensioen is een ruwe indicatie op basis van een annuïteit over 20 jaar. De werkelijke uitkering hangt af van de rentestand bij pensionering, het type regeling en eventuele indexatie.',
+    disclaimer: 'Het geschatte maandpensioen is een ruwe indicatie. Kapitaalopbouw gebruikt het gekozen rendement (2/5/8%); de omzetting naar maandpensioen gebruikt een vaste rekenrente van 1,5% over 20 jaar — conform conservatieve pensioenfondspraktijk, los van het beleggingsrendement. Dit hulpmiddel rekent alleen vooruit: al opgebouwde rechten uit eerdere jaren zijn niet inbegrepen. Raadpleeg mijnpensioenoverzicht.nl voor een prognose op basis van jouw werkelijke fonds.',
     pillarsNote: 'Dit eindkapitaal is uitsluitend je 2e pijler pensioen (via werkgever + eigen bijdrage). De AOW (~€1.400/mnd alleenstaand) en eventuele eigen spaarpot (3e pijler) komen hier nog bovenop. Zie "Inkomensvergelijking" hieronder voor het totaalplaatje.',
   },
   incomeComparison: {
@@ -250,10 +258,14 @@ const nl: Translations = {
     pillar2: '2e pijler (werkgeverspensioen)',
     pillar3: '3e pijler (eigen spaarpot)',
     pillar3None: 'Geen extra spaarbedrag ingesteld',
-    aow: 'AOW-uitkering (schatting)',
-    aowNote: '~€1.400/mnd alleenstaand (2024). Stel in via schuifregelaar als je situatie verschilt.',
-    totalMonthly: 'Totaal maandelijks pensioen',
-    replacementRate: 'Vervangingsratio',
+    aow: 'AOW-uitkering (bruto schatting)',
+    aowNote: '~€1.400/mnd alleenstaand bruto (2024). Stel in via schuifregelaar.',
+    grossNote: '(bruto)',
+    pensionTaxLabel: 'Belasting (AOW-leeftijdstarief)',
+    pensionTaxNote: 'AOW-gerechtigden betalen geen AOW-premie meer (~17,9%). Schijf 1 is daardoor ~19,07% i.p.v. 36,97%.',
+    netTotalLabel: 'Netto maandpensioen',
+    totalMonthly: 'Totaal bruto pensioen',
+    replacementRate: 'Vervangingsratio (netto/netto)',
     targetNote: 'Doel: 70–80% van je netto inkomen',
     statusGood: 'Goed',
     statusModerate: 'Matig',
@@ -263,6 +275,8 @@ const nl: Translations = {
     statusLowNote: 'Je pensioen vervangt minder dan de helft van je inkomen. Extra sparen is sterk aan te raden.',
     scenarioLabel: 'Scenario',
     normalScenario: 'Normaal (5%)',
+    nominalWarningTitle: 'Let op: nominale vergelijking',
+    nominalWarningBody: 'Toekomstige pensioenbedragen zijn in euro\'s van jaar N (opgepompt door inflatie), je huidig inkomen is in euro\'s van nu. Dit maakt de vervangingsratio misleidend hoog. Schakel naar "Reëel" voor een eerlijke vergelijking.',
   },
   warning: {
     title: '⚠️ Informatief hulpmiddel — geen financieel advies',
@@ -462,6 +476,7 @@ const en: Translations = {
     totalFunded: 'Total to pension pot',
     leverageTitle: 'Leverage ratio',
     leverageBody: (amount) => `For every net euro you pay, ${amount} goes into your pension.`,
+    currentYearNote: '📍 Shows year-1 amounts in current euros — not affected by the inflation toggle.',
   },
   capitalChart: {
     title: '📈 Pension capital over time',
@@ -502,7 +517,7 @@ const en: Translations = {
     normalLabel: 'Average scenario',
     goodLabel: 'Good scenario',
     ratePerYear: '%/year',
-    disclaimer: 'The estimated monthly pension is a rough indication based on a 20-year annuity. The actual payout depends on interest rates at retirement, the type of scheme, and any indexation.',
+    disclaimer: 'The estimated monthly pension is a rough indication. Capital accumulation uses the selected return rate (2/5/8%); conversion to monthly pension uses a fixed annuity rate of 1.5% over 20 years — in line with conservative pension fund practice, separate from the investment return. This tool only projects forward: pension rights already accrued from past years of service are not included. Check mijnpensioenoverzicht.nl for a projection from your actual fund.',
     pillarsNote: 'This capital is your 2nd pillar pension only (employer + employee contributions). AOW (~€1,400/month single) and any personal savings (3rd pillar) are on top of this. See "Income Comparison" below for the full picture.',
   },
   incomeComparison: {
@@ -512,10 +527,14 @@ const en: Translations = {
     pillar2: '2nd pillar (employer pension)',
     pillar3: '3rd pillar (personal savings)',
     pillar3None: 'No extra savings configured',
-    aow: 'AOW state pension (estimate)',
-    aowNote: '~€1,400/month single (2024). Adjust via slider if your situation differs.',
-    totalMonthly: 'Total monthly pension',
-    replacementRate: 'Replacement rate',
+    aow: 'AOW state pension (gross estimate)',
+    aowNote: '~€1,400/month single gross (2024). Adjust via slider if your situation differs.',
+    grossNote: '(gross)',
+    pensionTaxLabel: 'Tax (retirement-age rate)',
+    pensionTaxNote: 'AOW recipients no longer pay the AOW premium (~17.9%), so bracket 1 drops from 36.97% to ~19.07%.',
+    netTotalLabel: 'Net monthly pension',
+    totalMonthly: 'Total gross pension',
+    replacementRate: 'Replacement rate (net/net)',
     targetNote: 'Target: 70–80% of net income',
     statusGood: 'Good',
     statusModerate: 'Moderate',
@@ -525,6 +544,8 @@ const en: Translations = {
     statusLowNote: 'Your pension replaces less than half your income. Additional saving is strongly recommended.',
     scenarioLabel: 'Scenario',
     normalScenario: 'Average (5%)',
+    nominalWarningTitle: 'Note: nominal comparison',
+    nominalWarningBody: 'Future pension amounts are in year-N euros (inflated), while your current income is in today\'s euros. This makes the replacement rate misleadingly high. Switch to "Real" for a fair comparison.',
   },
   warning: {
     title: '⚠️ Informational tool — not financial advice',

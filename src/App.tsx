@@ -119,7 +119,7 @@ function AppInner() {
             />
 
             {/* 2. Tax leverage breakdown */}
-            {year1 && <TaxLeveragePanel result={year1} />}
+            {year1 && <TaxLeveragePanel result={year1} realMode={realMode} />}
 
             {/* 3. Income comparison */}
             <IncomeComparisonPanel

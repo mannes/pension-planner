@@ -56,7 +56,7 @@ export function CapitalChart({ results, realMode, inflationRate }: Props) {
   const midYear = Math.round(results.length / 2)
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+    <section data-guide-step="capital-chart" className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
       <div className="flex items-center gap-2 mb-1">
         <h2 className="text-base font-bold text-gray-900">{t.capitalChart.title}</h2>
         <InfoTooltip text={t.tooltips.nominalVsReal} />

@@ -11,8 +11,8 @@ import { getMarginalRate } from './tax'
  * 3. Contributions are calculated on the pensioengrondslag
  * 4. Accumulated capital earns the annual return, then this year's contribution is added
  *
- * Capital formula:  capital[y] = (capital[y-1] + contribution[y]) * (1 + returnRate)
- * (Contribution is added at start of year, then grows for the year)
+ * Capital formula:  capital[y] = capital[y-1] * (1 + returnRate) + contribution[y]
+ * (Prior capital compounds first, then this year's contribution is added at year-end)
  */
 export function runSimulation(params: SimParams): YearlyResult[] {
   const {
@@ -98,14 +98,28 @@ export function toReal(nominalValue: number, year: number, inflationRate: number
 }
 
 /**
+ * The annuity conversion rate used to turn accumulated capital into a monthly pension.
+ *
+ * This is intentionally separate from the investment return scenarios (2/5/8%).
+ * During the payout phase, pension funds use a conservative "rekenrente" based on
+ * actuarial life tables and guaranteed payout obligations — not equity returns.
+ * In the Netherlands this has been around 1–2% in recent years.
+ *
+ * Using the investment return rate here would significantly overestimate the monthly
+ * pension (e.g. at 5% the estimate is ~40% higher than at 1.5%).
+ */
+export const ANNUITY_RATE = 0.015
+
+/**
  * Estimate a rough monthly pension payout assuming the capital is spread over 20 years
- * with the same return rate continuing during drawdown.
- * This is a simplified annuity calculation.
+ * as an annuity at the given annual return rate.
+ *
+ * Call sites should pass ANNUITY_RATE (not the investment return rate) to get a
+ * realistic estimate matching what pension funds use for capital-to-pension conversion.
  */
 export function estimateMonthlyPension(capital: number, annualReturn: number): number {
-  const years = 20
+  const n = 20 * 12
   const monthlyRate = annualReturn / 12
-  const n = years * 12
   if (monthlyRate === 0) return capital / n
   // Standard annuity formula: PMT = PV * r / (1 - (1+r)^-n)
   return capital * monthlyRate / (1 - Math.pow(1 + monthlyRate, -n))

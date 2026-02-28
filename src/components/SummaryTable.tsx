@@ -1,5 +1,5 @@
 import { YearlyResult, RETURN_RATES } from '../types'
-import { toReal, estimateMonthlyPension } from '../logic/simulation'
+import { toReal, estimateMonthlyPension, ANNUITY_RATE } from '../logic/simulation'
 import { InfoBox } from './InfoBox'
 import { useTranslation } from '../context/LanguageContext'
 
@@ -138,7 +138,7 @@ export function SummaryTable({ results, realMode, inflationRate, hasThirdPillar 
   }
 
   return (
-    <section className="bg-white rounded-2xl border-2 border-blue-200 shadow-md p-5">
+    <section data-guide-step="results" className="bg-white rounded-2xl border-2 border-blue-200 shadow-md p-5">
       <div className="mb-1">
         <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
           {t.summary.title(years)}
@@ -159,7 +159,7 @@ export function SummaryTable({ results, realMode, inflationRate, hasThirdPillar 
             totalContributions={totals.contributions}
             totalTaxSavings={totals.taxSavings}
             totalNetCost={totals.netCost}
-            monthlyPension={estimateMonthlyPension(getCapital2nd(s.key) + getCapital3rd(s.key), s.rate)}
+            monthlyPension={estimateMonthlyPension(getCapital2nd(s.key) + getCapital3rd(s.key), ANNUITY_RATE)}
             accent={s.accent}
             bg={s.bg}
             {...cardProps}

@@ -1,6 +1,6 @@
-import { YearlyResult, SimParams, RETURN_RATES } from '../types'
-import { calculateTaxWithPensionDeduction } from '../logic/tax'
-import { estimateMonthlyPension, toReal } from '../logic/simulation'
+import { YearlyResult, SimParams } from '../types'
+import { calculateTaxWithPensionDeduction, calculateRetirementTax } from '../logic/tax'
+import { estimateMonthlyPension, toReal, ANNUITY_RATE } from '../logic/simulation'
 import { useTranslation } from '../context/LanguageContext'
 
 interface Props {
@@ -65,12 +65,20 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
     ? toReal(lastYear.capitalNormalThird, years, params.inflationRate)
     : lastYear.capitalNormalThird
 
-  const monthly2nd = estimateMonthlyPension(cap2Normal, RETURN_RATES.normal)
-  const monthly3rd = estimateMonthlyPension(cap3Normal, RETURN_RATES.normal)
+  const monthly2nd = estimateMonthlyPension(cap2Normal, ANNUITY_RATE)
+  const monthly3rd = estimateMonthlyPension(cap3Normal, ANNUITY_RATE)
   const monthlyAow = params.aowMonthly
-  const totalMonthly = monthly2nd + monthly3rd + monthlyAow
 
-  const replacementRate = currentNetMonthly > 0 ? totalMonthly / currentNetMonthly : 0
+  // Gross pension total — all three pillars are taxed as Box 1 income at retirement
+  const grossTotalMonthly = monthly2nd + monthly3rd + monthlyAow
+
+  // Tax at pension-age rates (no AOW premium, bracket 1 ≈ 19.07% instead of 36.97%)
+  const monthlyPensionTax = calculateRetirementTax(grossTotalMonthly * 12) / 12
+
+  // Net pension used for replacement rate — compare net/net
+  const netTotalMonthly = grossTotalMonthly - monthlyPensionTax
+
+  const replacementRate = currentNetMonthly > 0 ? netTotalMonthly / currentNetMonthly : 0
   const replacementPct = Math.round(replacementRate * 100)
 
   const isGood = replacementPct >= 70
@@ -103,10 +111,17 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
       <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-1">
         <span>⚖️</span> {t.incomeComparison.title}
       </h2>
-      <p className="text-xs text-gray-500 mb-5">
+      <p className="text-xs text-gray-500 mb-2">
         {t.incomeComparison.subtitle} ({t.incomeComparison.normalScenario}
         {realMode ? ', reëel' : ', nominaal'})
       </p>
+      {!realMode && (
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+          ⚠️ <strong>{t.incomeComparison.nominalWarningTitle}</strong>{' '}
+          {t.incomeComparison.nominalWarningBody}
+        </div>
+      )}
+      {realMode && <div className="mb-4" />}
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
         {/* Gauge */}
@@ -140,20 +155,30 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
             <p className="text-xs text-gray-400">Jaar 1, na belasting en werknemersbijdrage</p>
           </div>
 
-          <Bar label={t.incomeComparison.pillar2} value={monthly2nd} total={currentNetMonthly} color="#3b82f6" />
+          <Bar label={`${t.incomeComparison.pillar2} ${t.incomeComparison.grossNote}`} value={monthly2nd} total={currentNetMonthly} color="#3b82f6" />
           {params.extraSavingsMonthly > 0 ? (
-            <Bar label={t.incomeComparison.pillar3} value={monthly3rd} total={currentNetMonthly} color="#8b5cf6"
+            <Bar label={`${t.incomeComparison.pillar3} ${t.incomeComparison.grossNote}`} value={monthly3rd} total={currentNetMonthly} color="#8b5cf6"
               note={`${euro(params.extraSavingsMonthly * 12)}/jaar extra inleg`} />
           ) : (
             <div className="text-xs text-gray-400 italic">{t.incomeComparison.pillar3None}</div>
           )}
-          <Bar label={t.incomeComparison.aow} value={monthlyAow} total={currentNetMonthly} color="#10b981"
+          <Bar label={`${t.incomeComparison.aow}`} value={monthlyAow} total={currentNetMonthly} color="#10b981"
             note={t.incomeComparison.aowNote} />
 
-          <div className="border-t border-gray-200 pt-2 mt-2">
-            <div className="flex justify-between text-sm">
-              <span className="font-semibold text-gray-800">{t.incomeComparison.totalMonthly}</span>
-              <span className="font-mono font-bold text-gray-900">{euro(totalMonthly)}</span>
+          <div className="border-t border-gray-200 pt-2 mt-2 space-y-1">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>{t.incomeComparison.totalMonthly}</span>
+              <span className="font-mono">{euro(grossTotalMonthly)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-red-600">
+              <span title={t.incomeComparison.pensionTaxNote}>
+                − {t.incomeComparison.pensionTaxLabel}
+              </span>
+              <span className="font-mono">{euro(monthlyPensionTax)}</span>
+            </div>
+            <div className="flex justify-between text-sm border-t border-gray-200 pt-1.5">
+              <span className="font-bold text-gray-900">{t.incomeComparison.netTotalLabel}</span>
+              <span className="font-mono font-bold text-gray-900">{euro(netTotalMonthly)}</span>
             </div>
           </div>
 

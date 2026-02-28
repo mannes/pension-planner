@@ -62,47 +62,50 @@ export function InputPanel({ params, onChange }: Props) {
         {t.inputs.sectionTitle}
       </h2>
 
-      <SliderInput
-        label={t.inputs.salary}
-        tooltip={t.tooltips.salary}
-        value={params.startingSalary}
-        min={20_000} max={150_000} step={500}
-        format={euro}
-        onChange={v => set('startingSalary', v)}
-      />
-      <SliderInput
-        label={t.inputs.salaryGrowth}
-        tooltip={t.tooltips.salaryGrowth}
-        value={params.salaryGrowthRate}
-        min={0} max={0.08} step={0.005}
-        format={pct}
-        onChange={v => set('salaryGrowthRate', v)}
-      />
+      <div data-guide-step="salary">
+        <SliderInput
+          label={t.inputs.salary}
+          tooltip={t.tooltips.salary}
+          value={params.startingSalary}
+          min={20_000} max={150_000} step={500}
+          format={euro}
+          onChange={v => set('startingSalary', v)}
+        />
+        <SliderInput
+          label={t.inputs.salaryGrowth}
+          tooltip={t.tooltips.salaryGrowth}
+          value={params.salaryGrowthRate}
+          min={0} max={0.08} step={0.005}
+          format={pct}
+          onChange={v => set('salaryGrowthRate', v)}
+        />
+      </div>
 
       <div className="border-t border-gray-100 my-4" />
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-        {t.inputs.premiesTitle}
-      </h3>
-
-      <SliderInput
-        label={t.inputs.employerPct}
-        tooltip={t.tooltips.employerPct}
-        value={params.employerPct}
-        min={0} max={0.30} step={0.005}
-        format={pct}
-        onChange={v => set('employerPct', v)}
-      />
-      <SliderInput
-        label={t.inputs.employeePct}
-        tooltip={t.tooltips.employeePct}
-        value={params.employeePct}
-        min={0} max={0.20} step={0.005}
-        format={pct}
-        onChange={v => set('employeePct', v)}
-      />
+      <div data-guide-step="contributions">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          {t.inputs.premiesTitle}
+        </h3>
+        <SliderInput
+          label={t.inputs.employerPct}
+          tooltip={t.tooltips.employerPct}
+          value={params.employerPct}
+          min={0} max={0.30} step={0.005}
+          format={pct}
+          onChange={v => set('employerPct', v)}
+        />
+        <SliderInput
+          label={t.inputs.employeePct}
+          tooltip={t.tooltips.employeePct}
+          value={params.employeePct}
+          min={0} max={0.20} step={0.005}
+          format={pct}
+          onChange={v => set('employeePct', v)}
+        />
+      </div>
 
       <div className="border-t border-gray-100 my-4" />
-      <div className="mb-1">
+      <div data-guide-step="extra-savings" className="mb-1">
         <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
           {t.inputs.extraSavings}
           <InfoTooltip text={t.tooltips.extraSavings} />
