@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom range slider styling for cross-browser consistency */
+input[type='range'] {
+  @apply cursor-pointer;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 rounded-full bg-blue-600 cursor-pointer shadow-sm;
+  border: 2px solid white;
+}
+
+input[type='range']::-moz-range-thumb {
+  @apply w-4 h-4 rounded-full bg-blue-600 cursor-pointer border-2 border-white;
+}
