@@ -53,7 +53,7 @@ const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 
 export function InputPanel({ params, onChange }: Props) {
   const { t, lang } = useTranslation()
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(true)
 
   function set<K extends keyof SimParams>(key: K, value: SimParams[K]) {
     onChange({ ...params, [key]: value })
