@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from '../context/LanguageContext'
 
 interface Props {
   title: string
@@ -73,6 +74,7 @@ function renderInline(text: string) {
 
 export function InfoBox({ title, content }: Props) {
   const [open, setOpen] = useState(false)
+  const { t } = useTranslation()
 
   return (
     <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 overflow-hidden">
@@ -85,7 +87,7 @@ export function InfoBox({ title, content }: Props) {
           <span className="text-blue-500">📖</span>
           {title}
         </span>
-        <span className="text-blue-400 text-xs">{open ? '▲ Sluiten' : '▼ Lees meer'}</span>
+        <span className="text-blue-400 text-xs">{open ? `▲ ${t.infoBox.close}` : `▼ ${t.infoBox.readMore}`}</span>
       </button>
       {open && (
         <div className="px-4 pb-4 pt-1 border-t border-blue-200">

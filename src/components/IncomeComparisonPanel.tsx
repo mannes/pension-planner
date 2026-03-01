@@ -2,6 +2,7 @@ import { YearlyResult, SimParams } from '../types'
 import { calculateTaxWithPensionDeduction, calculateRetirementTax } from '../logic/tax'
 import { estimateMonthlyPension, toReal, ANNUITY_RATE } from '../logic/simulation'
 import { useTranslation } from '../context/LanguageContext'
+import { InfoBox } from './InfoBox'
 
 interface Props {
   results: YearlyResult[]
@@ -191,6 +192,10 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
           </div>
         </div>
       </div>
+      <InfoBox
+        title={t.infoBoxes.retirementCosts.title}
+        content={t.infoBoxes.retirementCosts.content}
+      />
     </section>
   )
 }

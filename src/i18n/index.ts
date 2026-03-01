@@ -155,6 +155,10 @@ export interface Translations {
     skipBtn: string
     stepOf: (current: number, total: number) => string
   }
+  infoBox: {
+    readMore: string
+    close: string
+  }
   infoBoxes: {
     pensioengrondslag: InfoBoxContent
     taxLeverage: InfoBoxContent
@@ -162,6 +166,7 @@ export interface Translations {
     returnScenarios: InfoBoxContent
     pillars: InfoBoxContent
     extraSavings: InfoBoxContent
+    retirementCosts: InfoBoxContent
   }
   footer: string
 }
@@ -428,6 +433,27 @@ In de praktijk: voor de meeste mensen die geen volledig pensioen via hun werkgev
 
 **Let op:** Dit hulpmiddel berekent het belastingvoordeel vereenvoudigd (marginale tarief × inleg). Raadpleeg de Belastingdienst of een adviseur voor jouw exacte jaarruimte.`,
     },
+    retirementCosts: {
+      title: 'Hoeveel pensioen heb ik nodig?',
+      content: `70–80% klinkt misschien weinig, maar je uitgavenpatroon verandert flink als je met pensioen gaat. Veel grote kostenposten zijn dan verdwenen of sterk verlaagd.
+
+**Kosten die typisch wegvallen of dalen:**
+- **Hypotheek afgelost** — de meeste mensen hebben hun huis tegen pensioendatum grotendeels of volledig afgelost
+- **Studieschuld terugbetaald** — langlopende studieschulden zijn dan al jaren afgelost
+- **Kinderen financieel onafhankelijk** — geen kosten meer voor kinderopvang, studie of steun aan kinderen
+- **Geen pensioenpremie meer** — je betaalt zelf geen pensioenpremie meer, wat nu een fors deel van je bruto salaris is
+- **Minder werkgerelateerde kosten** — geen reiskosten woon-werk, representatiekleding of werkgerelateerde uitgaven
+- **Lagere belasting** — pensioeninkomen wordt belast tegen lagere tarieven (geen AOW-premie meer in schijf 1)
+
+**Daar tegenover staat:**
+Meer vrije tijd betekent ook meer gelegenheid om geld uit te geven — aan reizen, hobby's of kleinkinderen. En zorgkosten kunnen toenemen naarmate je ouder wordt.
+
+> De vuistregel van 70–80% is een gemiddelde. Jouw ideale vervangingsratio hangt af van je eigen levensstijl en verwachte uitgaven.`,
+    },
+  },
+  infoBox: {
+    readMore: 'Lees meer',
+    close: 'Sluiten',
   },
   footer: 'Gebaseerd op Nederlandse belastingregels en pensioenwetgeving 2024/2025. Dit is een educatief hulpmiddel — geen financieel advies. Raadpleeg een financieel adviseur voor persoonlijk advies.',
 }
@@ -694,6 +720,27 @@ In practice: most people who don't have a full employer pension have room to ded
 
 **Note:** This tool calculates the tax benefit in a simplified way (marginal rate × contribution). Consult the Dutch Tax Authority or an advisor for your exact annual space.`,
     },
+    retirementCosts: {
+      title: 'How much pension do I need?',
+      content: `70–80% may sound modest, but your spending pattern changes significantly when you retire. Many major expenses will have disappeared or shrunk considerably.
+
+**Costs that typically fall away or reduce:**
+- **Mortgage paid off** — most people have fully or largely repaid their home loan by retirement
+- **Student loans repaid** — any long-running student debt is well behind you
+- **Children financially independent** — no more childcare, tuition, or financial support for kids
+- **No more pension contributions** — you no longer pay pension premiums, which currently take a significant slice of your gross salary
+- **Fewer work-related costs** — no commuting, work clothing, or work-related expenses
+- **Lower taxes** — pension income is taxed at lower rates (no AOW premium in bracket 1 once you reach state pension age)
+
+**On the other hand:**
+More free time also means more opportunity to spend — on travel, hobbies, or grandchildren. And healthcare costs tend to rise as you get older.
+
+> The 70–80% rule of thumb is an average. Your ideal replacement rate depends on your own lifestyle and expected spending.`,
+    },
+  },
+  infoBox: {
+    readMore: 'Read more',
+    close: 'Close',
   },
   footer: 'Based on Dutch tax rules and pension legislation 2024/2025. This is an educational tool — not financial advice. Consult a financial advisor for personal advice.',
 }
