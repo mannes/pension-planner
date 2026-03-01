@@ -198,6 +198,22 @@ function NlContent() {
           </li>
         </ul>
       </Section>
+
+      <Section title="Privacy">
+        <p>
+          Deze tool draait volledig in je browser. Er is geen server, geen
+          database en geen analysedienst gekoppeld. De cijfers die je invult
+          worden nergens naartoe verstuurd en worden niet opgeslagen buiten je
+          eigen apparaat. Alleen je taalvoorkeur en of je de introductie al
+          hebt gezien worden lokaal bewaard via localStorage.
+        </p>
+        <p className="text-gray-500 italic">
+          Wees desondanks altijd kritisch bij het invullen van persoonlijke of
+          financiële gegevens op websites — ook als een tool claimt niets te
+          bewaren. Je hebt geen exacte bedragen nodig: afgeronde of geschatte
+          cijfers geven al zinvolle inzichten.
+        </p>
+      </Section>
     </>
   );
 }
@@ -353,6 +369,22 @@ function EnContent() {
           <li>Partner pension or survivor's pension is not calculated</li>
           <li>Tax rules change annually — this tool uses 2024/2025 rates</li>
         </ul>
+      </Section>
+
+      <Section title="Privacy">
+        <p>
+          This tool runs entirely in your browser. There is no server, no
+          database, and no analytics service attached. The numbers you enter
+          are never sent anywhere and are not stored outside your own device.
+          Only your language preference and whether you've seen the intro are
+          saved locally via localStorage.
+        </p>
+        <p className="text-gray-500 italic">
+          That said, always be critical about entering personal or financial
+          data on websites — even when a tool claims to store nothing. You
+          don't need exact figures: rounded or estimated numbers are enough to
+          get meaningful insight.
+        </p>
       </Section>
     </>
   );
