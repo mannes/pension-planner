@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { YearlyResult, RETURN_RATES } from '../types'
 import { toReal, estimateMonthlyPension, ANNUITY_RATE } from '../logic/simulation'
 import { InfoBox } from './InfoBox'
@@ -117,6 +118,7 @@ function ScenarioCard({
 
 export function SummaryTable({ results, realMode, inflationRate, hasThirdPillar }: Props) {
   const { t } = useTranslation()
+  const [activeScenario, setActiveScenario] = useState<'Bad' | 'Normal' | 'Good'>('Normal')
 
   if (results.length === 0) return null
 
@@ -183,22 +185,42 @@ export function SummaryTable({ results, realMode, inflationRate, hasThirdPillar 
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+      {/* Scenario tab selector — mobile only */}
+      <div className="md:hidden flex rounded-full bg-gray-100 p-0.5 mt-4">
         {scenarios.map(s => (
-          <ScenarioCard
+          <button
             key={s.key}
-            label={s.label}
-            returnRate={s.rate}
-            finalCapital2nd={getCapital2nd(s.key)}
-            finalCapital3rd={getCapital3rd(s.key)}
-            totalContributions={totals.contributions}
-            totalTaxSavings={totals.taxSavings}
-            totalNetCost={totals.netCost}
-            monthlyPension={estimateMonthlyPension(getCapital2nd(s.key) + getCapital3rd(s.key), ANNUITY_RATE)}
-            accent={s.accent}
-            bg={s.bg}
-            {...cardProps}
-          />
+            type="button"
+            onClick={() => setActiveScenario(s.key)}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-full transition-all ${
+              activeScenario === s.key
+                ? `bg-white shadow-sm ${s.accent}`
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Cards: single card on mobile, grid of 3 on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+        {scenarios.map(s => (
+          <div key={s.key} className={s.key === activeScenario ? 'md:block' : 'hidden md:block'}>
+            <ScenarioCard
+              label={s.label}
+              returnRate={s.rate}
+              finalCapital2nd={getCapital2nd(s.key)}
+              finalCapital3rd={getCapital3rd(s.key)}
+              totalContributions={totals.contributions}
+              totalTaxSavings={totals.taxSavings}
+              totalNetCost={totals.netCost}
+              monthlyPension={estimateMonthlyPension(getCapital2nd(s.key) + getCapital3rd(s.key), ANNUITY_RATE)}
+              accent={s.accent}
+              bg={s.bg}
+              {...cardProps}
+            />
+          </div>
         ))}
       </div>
 

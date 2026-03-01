@@ -140,6 +140,7 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 - Replacement rate = net pension / net reference salary (net/net comparison)
 - Gauge visualization with status: Good (≥70%) / Moderate (50–69%) / Low (<50%)
 - Target shown on gauge: 70–80%
+- Expandable InfoBox at bottom: "Why is a lower replacement rate often fine?" — lists costs that typically fall away at retirement (mortgage paid off, no student debt, children independent, no pension contributions, fewer work costs, lower tax rate); also notes upside spending (travel, hobbies) and rising healthcare; bilingual NL/EN via `infoBoxes.retirementCosts`
 
 ### 3. Tax Leverage Panel (year 1 snapshot)
 - Waterfall breakdown: gross salary → minus franchise → pension base → employee gross → tax saving → net cost → employer → total funded
@@ -173,6 +174,22 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 - Inflation rate adjustable in advanced settings
 - TaxLeveragePanel: unaffected (year-1 values are always "now"); shows explanatory note in real mode
 - IncomeComparisonPanel: reference salary switches between final-year (nominal) and year-1 (real) — both comparisons are fair within their respective mode
+
+### Mobile UX
+
+**InputPanel (settings sidebar):**
+- On mobile: `sticky top-0 z-30`; collapsed by default with an "▼ Aanpassen / Adjust" toggle button in the header
+- When collapsed: shows a mini summary strip (salary · employer%/employee% · age) so current values are always visible
+- When expanded: full settings visible, header remains sticky
+- On desktop (`lg+`): always fully visible, no toggle (static positioning handled by parent wrapper)
+
+**SummaryTable (results card):**
+- On mobile: segmented control (3-button pill) to select Bad / Normal / Good scenario; only the selected card is shown
+- Default selected: Normal scenario
+- On desktop (`md+`): all 3 scenario cards shown in grid as before
+
+**InfoBox expand/collapse labels:**
+- "Lees meer" / "Sluiten" come from `t.infoBox.readMore` / `t.infoBox.close` — fully translated NL/EN
 
 ### Educational Help System
 1. **InfoTooltip** — `(?)` icon on every input label, hover/click popover
