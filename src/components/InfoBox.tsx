@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 interface Props {
   title: string
@@ -6,33 +6,62 @@ interface Props {
 }
 
 function renderContent(text: string) {
-  // Very simple inline renderer for bold, blockquotes, and line breaks
-  return text.split('\n').map((line, i) => {
+  const lines = text.split('\n')
+  const elements: React.ReactNode[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // Collect consecutive table rows into a single <table>
+    if (line.startsWith('| ')) {
+      const tableLines: string[] = []
+      while (i < lines.length && lines[i].startsWith('| ')) {
+        tableLines.push(lines[i])
+        i++
+      }
+      const rows = tableLines.filter(l => !/^\|[-| ]+\|$/.test(l))
+      const parseRow = (l: string) => l.split('|').filter(c => c.trim() !== '')
+      elements.push(
+        <table key={i} className="w-full text-xs my-2 border-collapse">
+          <thead>
+            <tr>
+              {parseRow(rows[0]).map((c, j) => (
+                <th key={j} className="text-left py-1 pr-4 font-semibold text-gray-700 border-b border-gray-200">{renderInline(c.trim())}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.slice(1).map((row, ri) => (
+              <tr key={ri} className="border-b border-gray-100">
+                {parseRow(row).map((c, j) => (
+                  <td key={j} className={`py-1 pr-4 ${j === 0 ? 'font-medium text-gray-700' : 'text-gray-600'}`}>{renderInline(c.trim())}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+      continue
+    }
+
     if (line.startsWith('> ')) {
-      return (
+      elements.push(
         <blockquote key={i} className="border-l-4 border-blue-300 pl-3 my-2 text-blue-800 italic text-sm">
           {renderInline(line.slice(2))}
         </blockquote>
       )
+    } else if (line.startsWith('**') && line.endsWith('**') && line.length > 4) {
+      elements.push(<p key={i} className="font-semibold text-gray-800 mt-3 mb-1 text-sm">{line.slice(2, -2)}</p>)
+    } else if (line === '') {
+      elements.push(<div key={i} className="h-2" />)
+    } else {
+      elements.push(<p key={i} className="text-sm text-gray-700 leading-relaxed">{renderInline(line)}</p>)
     }
-    if (line.startsWith('| ')) {
-      // skip table separator rows
-      if (/^\|[-| ]+\|$/.test(line)) return null
-      const cells = line.split('|').filter(c => c.trim() !== '')
-      return (
-        <div key={i} className="flex gap-2 text-sm border-b border-gray-100 py-0.5">
-          {cells.map((c, j) => (
-            <span key={j} className={`flex-1 ${j === 0 ? 'font-medium' : ''}`}>{renderInline(c.trim())}</span>
-          ))}
-        </div>
-      )
-    }
-    if (line.startsWith('**') && line.endsWith('**') && line.length > 4) {
-      return <p key={i} className="font-semibold text-gray-800 mt-3 mb-1 text-sm">{line.slice(2, -2)}</p>
-    }
-    if (line === '') return <div key={i} className="h-2" />
-    return <p key={i} className="text-sm text-gray-700 leading-relaxed">{renderInline(line)}</p>
-  })
+    i++
+  }
+
+  return elements
 }
 
 function renderInline(text: string) {

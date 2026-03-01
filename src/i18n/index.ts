@@ -21,12 +21,23 @@ export interface Translations {
     employeePct: string
     extraSavings: string
     extraSavingsNote: string
+    startingAge: string
     advancedTitle: string
     franchise: string
     franchiseGrowth: string
     inflation: string
-    years: string
     yearsUnit: string
+  }
+  jaarruimte: {
+    title: string
+    grossSpace: string
+    pillar2: string
+    availableThird: string
+    youSave: string
+    remaining: string
+    overLimit: string
+    approxNote: string
+    tooltip: string
   }
   tooltips: {
     salary: string
@@ -39,6 +50,7 @@ export interface Translations {
     inflation: string
     nominalVsReal: string
     leverageRatio: string
+    startingAge: string
   }
   taxPanel: {
     title: string
@@ -54,6 +66,9 @@ export interface Translations {
     leverageTitle: string
     leverageBody: (amount: string) => string
     currentYearNote: string   // shown when realMode is active
+    thirdPillarTitle: string  // section header for 3rd pillar rows
+    thirdPillarContrib: string
+    thirdPillarNetCost: string
   }
   capitalChart: {
     title: string
@@ -68,8 +83,6 @@ export interface Translations {
     title: string
     subtitleNominal: string
     subtitleReal: string
-    showYear: string
-    to: string
     employer: string
     employeeGross: string
     taxSaving: string
@@ -134,8 +147,6 @@ export interface Translations {
     step1: { title: string; body: string }
     step2: { title: string; body: string }
     step3: { title: string; body: string }
-    step4: { title: string; body: string }
-    step5: { title: string; body: string }
     prevBtn: string
     nextBtn: string
     finishBtn: string
@@ -147,7 +158,6 @@ export interface Translations {
     taxLeverage: InfoBoxContent
     dutchTax: InfoBoxContent
     returnScenarios: InfoBoxContent
-    aow: InfoBoxContent
     pillars: InfoBoxContent
     extraSavings: InfoBoxContent
   }
@@ -175,12 +185,23 @@ const nl: Translations = {
     employeePct: 'Werknemersbijdrage',
     extraSavings: 'Extra eigen spaarbedrag/mnd',
     extraSavingsNote: 'Via lijfrente of banksparen (3e pijler)',
+    startingAge: 'Huidige leeftijd',
     advancedTitle: 'Geavanceerde instellingen',
     franchise: 'AOW-franchise',
     franchiseGrowth: 'Franchise-stijging p/j',
     inflation: 'Inflatie',
-    years: 'Looptijd',
     yearsUnit: 'jaar',
+  },
+  jaarruimte: {
+    title: 'Jaarruimte 3e pijler',
+    grossSpace: 'Max. ruimte (30% × grondslag)',
+    pillar2: '− 2e pijler bijdragen',
+    availableThird: 'Beschikbaar voor 3e pijler',
+    youSave: 'Jij spaart nu',
+    remaining: 'Nog beschikbaar',
+    overLimit: 'Limiet overschreden',
+    approxNote: 'Benadering voor DC-regelingen. Raadpleeg de Belastingdienst voor je exacte jaarruimte.',
+    tooltip: 'De jaarruimte is het maximale bedrag dat je fiscaal voordelig mag inleggen in een 3e pijler product (lijfrente of banksparen). De ruimte is 30% van je pensioengrondslag, verminderd met wat er al via je werkgever wordt ingelegd. Alles wat je within de jaarruimte inlegt, is aftrekbaar van je belastbaar inkomen.',
   },
   tooltips: {
     salary: 'Je huidige bruto jaarsalaris. Dit is het bedrag vóór aftrek van belasting en pensioenpremie.',
@@ -193,6 +214,7 @@ const nl: Translations = {
     inflation: 'Jaarlijkse geldontwaarding. Bij 2% inflatie is €1.000 over 10 jaar nog maar €820 waard in koopkracht.',
     nominalVsReal: 'Nominaal toont de absolute eurobedragen. Reëel corrigeert voor inflatie en toont de koopkracht in euro\'s van vandaag. Over 30 jaar maakt dit een groot verschil!',
     leverageRatio: 'De hefboomverhouding laat zien hoeveel er in jouw pensioenpot wordt gestort voor elke netto euro die jij zelf betaalt.',
+    startingAge: 'Je huidige leeftijd. De simulatieduur wordt automatisch berekend als het aantal jaren tot je AOW-leeftijd (67).',
   },
   taxPanel: {
     title: '💡 Belastingvoordeel — jaar 1',
@@ -208,6 +230,9 @@ const nl: Translations = {
     leverageTitle: 'Hefboomverhouding',
     leverageBody: (amount) => `Voor elke netto euro die jij betaalt, gaat ${amount} naar jouw pensioen.`,
     currentYearNote: '📍 Toont jaar-1 bedragen in huidige euro\'s — niet beïnvloed door de inflatie-schakelaar.',
+    thirdPillarTitle: '3e pijler — eigen inleg',
+    thirdPillarContrib: 'Eigen inleg (p/jaar)',
+    thirdPillarNetCost: '= Netto kosten 3e pijler',
   },
   capitalChart: {
     title: '📈 Pensioenkapitaal over de tijd',
@@ -222,8 +247,6 @@ const nl: Translations = {
     title: '📊 Jaarlijkse bijdrage-opbouw',
     subtitleNominal: 'Hoe elke euro naar je pensioen gaat: werkgever, jijzelf en het belastingvoordeel',
     subtitleReal: 'Hoe elke euro naar je pensioen gaat — reëel (euro\'s van vandaag)',
-    showYear: 'Toon jaar',
-    to: 't/m',
     employer: 'Werkgever',
     employeeGross: 'Werknemer (bruto)',
     taxSaving: 'Belastingbesparing',
@@ -286,27 +309,19 @@ const nl: Translations = {
   guide: {
     welcome: {
       title: 'Welkom bij de Pensioenplanner!',
-      body: 'Dit hulpmiddel laat je zien hoe je pensioen opbouwt en wat het je echt kost — rekening houdend met Nederlandse belastingregels. We geven je een korte rondleiding door de instellingen.',
+      body: 'Dit hulpmiddel laat je zien hoe je pensioen opbouwt en wat het je echt kost — rekening houdend met Nederlandse belastingregels. Korte rondleiding in 3 stappen.',
     },
     step1: {
-      title: '1. Jouw brutosalaris',
-      body: 'Stel je huidige bruto jaarsalaris in met de schuifregelaar links. Dit vind je op je loonstrook of in je arbeidscontract. Brutosalaris is het bedrag vóór belasting en inhoudingen.',
+      title: '1. Stel je situatie in',
+      body: 'Pas je brutosalaris, leeftijd en pensioenpremies aan via de schuifregelaars. De werkgever- en werknemersbijdrage vind je in je arbeidscontract of cao. Weet je het niet? Check MijnPensioenoverzicht.nl of vraag het aan HR.',
     },
     step2: {
-      title: '2. Je pensioenregeling',
-      body: 'Werkgever en werknemer betalen elk een percentage van je pensioengrondslag (brutosalaris minus AOW-franchise). Kijk in je arbeidscontract of cao-regeling voor de exacte percentages. Weet je het niet? Vraag het aan je HR-afdeling of kijk op MijnPensioenoverzicht.nl.',
+      title: '2. Nominaal vs. Reëel',
+      body: 'Met de schakelaar rechtsboven wissel je tussen twee weergaven. Nominaal toont toekomstige eurobedragen zoals ze zijn — maar inflatie holt koopkracht uit. Reëel corrigeert voor inflatie en toont wat je pensioen echt waard is in euro\'s van vandaag. Over 30 jaar maakt dit een enorm verschil!',
     },
     step3: {
-      title: '3. Extra eigen sparen (optioneel)',
-      body: 'Naast je werkgeverspensioen kun je zelf extra sparen via een lijfrente of bankspaarproduct. Dit is fiscaal aftrekbaar binnen je jaarruimte — je krijgt een deel terug van de belastingdienst. Stel het maandbedrag in als je dit doet.',
-    },
-    step4: {
-      title: '4. Lees de resultaten',
-      body: 'De resultaten bovenaan tonen je geschatte eindkapitaal en maandpensioen. De "Belastingvoordeel"-sectie laat zien wat de pensioenopbouw je echt kost na belastingteruggave. Gebruik de schakelaar "Nominaal / Reëel" om te zien wat je pensioen echt waard is na inflatie.',
-    },
-    step5: {
-      title: '5. Vergelijk scenario\'s',
-      body: 'Het rendement op je pensioenpot is onzeker. Drie scenario\'s laten de bandbreedte zien: slecht (2%), normaal (5%) en goed (8%) per jaar. Gebruik dit om je verwachtingen realistisch bij te stellen — én om te zien dat zelfs het slechte scenario significant pensioenkapitaal oplevert.',
+      title: '3. Lees de resultaten',
+      body: 'Bovenaan zie je je geschatte eindkapitaal en maandpensioen in drie scenario\'s (2%, 5%, 8% rendement). De "Belastingvoordeel"-sectie laat zien wat het je echt kost na belastingteruggave. Hoe je dat leest: je netto kosten zijn vaak veel lager dan je denkt!',
     },
     prevBtn: '← Vorige',
     nextBtn: 'Volgende →',
@@ -380,30 +395,20 @@ Als je bijv. €50.000 verdient, is je marginale tarief 36,97%. Verdien je €80
 
 Het verschil tussen 2% en 8% over 30 jaar is enorm — zie de grafiek. Dit illustreert het belang van het beleggingsbeleid van je pensioenfonds.`,
     },
-    aow: {
-      title: 'Pensioen en AOW: twee pijlers',
-      content: `Het Nederlandse pensioenstelsel kent drie pijlers:
+    pillars: {
+      title: 'De drie pensioenpijlers',
+      content: `**Dit eindkapitaal is alleen je 2e pijler** — het pensioen dat je via je werkgever opbouwt. De drie pijlers samen bepalen je totale pensioeninkomen:
 
-**1e pijler — AOW (Algemene Ouderdomswet)**
-Staatspensioen voor iedereen die in Nederland heeft gewoond/gewerkt. Hoogte: circa €1.400/maand (alleenstaand) of €960/persoon (samenwonend) in 2024.
+**1e pijler — AOW**
+Staatspensioen voor iedereen die in Nederland heeft gewoond of gewerkt. Circa €1.400/maand (alleenstaand) in 2024. Jouw AOW-uitkering is instelbaar via de Geavanceerde instellingen.
 
 **2e pijler — Werkgeverspensioen**
-Het pensioen dat je via je werk opbouwt — dit is waar de hoofdberekening over gaat. Beschikbare premieregeling (DC): je bouwt een persoonlijk kapitaal op dat bij pensionering wordt omgezet naar een uitkering.
+Dit is wat deze calculator simuleert. Werkgever en werknemer leggen samen premies in; bij pensionering wordt het opgebouwde kapitaal omgezet naar een maandelijkse uitkering.
 
-**3e pijler — Persoonlijke voorzieningen**
-Lijfrentes, banksparen, eigen beleggingen. Vrijwillig en fiscaal gunstig.
+**3e pijler — Eigen aanvulling**
+Vrijwillig extra sparen via een lijfrente of bankspaarproduct. Fiscaal aftrekbaar binnen je jaarruimte. Stel een maandbedrag in via "Extra eigen spaarbedrag" om dit mee te simuleren.
 
-De "Inkomensvergelijking" laat zien hoe alle drie optellen.`,
-    },
-    pillars: {
-      title: 'Wat zit er in dit eindkapitaal?',
-      content: `**Dit eindkapitaal is alleen je 2e pijler** — het pensioen dat je via je werkgever opbouwt (werkgeversbijdrage + eigen bijdrage).
-
-Niet inbegrepen:
-- **AOW (1e pijler):** Iedereen die in Nederland woont/werkt bouwt AOW op. Dit is circa €1.400/mnd voor alleenstaanden in 2024. Dit komt bovenop je werkgeverspensioen.
-- **3e pijler:** Als je extra spaart via een eigen lijfrente of bankspaarproduct, is dat een aparte pot. Je kunt dit invoeren via het invoerveld "Extra eigen spaarbedrag".
-
-De "Inkomensvergelijking" hieronder toont het gecombineerde plaatje van alle pijlers.`,
+De "Inkomensvergelijking" laat zien hoe alle drie pijlers samen je vervangingsratio bepalen.`,
     },
     extraSavings: {
       title: 'Extra pensioensparen: de 3e pijler',
@@ -444,12 +449,23 @@ const en: Translations = {
     employeePct: 'Employee contribution',
     extraSavings: 'Extra personal savings/month',
     extraSavingsNote: 'Via annuity or bank savings (3rd pillar)',
+    startingAge: 'Current age',
     advancedTitle: 'Advanced settings',
     franchise: 'AOW threshold (franchise)',
     franchiseGrowth: 'Threshold growth p/yr',
     inflation: 'Inflation',
-    years: 'Duration',
     yearsUnit: 'years',
+  },
+  jaarruimte: {
+    title: 'Annual space (jaarruimte)',
+    grossSpace: 'Max. space (30% × base)',
+    pillar2: '− 2nd pillar contributions',
+    availableThird: 'Available for 3rd pillar',
+    youSave: 'You currently save',
+    remaining: 'Remaining',
+    overLimit: 'Limit exceeded',
+    approxNote: 'Approximation for DC plans. Consult the Dutch Tax Authority for your exact jaarruimte.',
+    tooltip: 'The jaarruimte (annual space) is the maximum you can contribute to a 3rd-pillar product (annuity or bank savings) with full tax deductibility. The space is 30% of your pension base, reduced by what is already being contributed through your employer scheme. Everything within the jaarruimte is deductible from your taxable income.',
   },
   tooltips: {
     salary: 'Your current gross annual salary. This is the amount before tax and pension deductions — find it on your payslip.',
@@ -462,6 +478,7 @@ const en: Translations = {
     inflation: 'Annual purchasing power erosion. At 2% inflation, €1,000 is only worth €820 in purchasing power after 10 years.',
     nominalVsReal: 'Nominal shows absolute euro amounts. Real adjusts for inflation and shows purchasing power in today\'s euros. Over 30 years this makes a huge difference!',
     leverageRatio: 'The leverage ratio shows how much goes into your pension pot for every net euro you actually pay yourself.',
+    startingAge: 'Your current age. The simulation period is automatically calculated as years until AOW retirement age (67).',
   },
   taxPanel: {
     title: '💡 Tax benefit — year 1',
@@ -477,6 +494,9 @@ const en: Translations = {
     leverageTitle: 'Leverage ratio',
     leverageBody: (amount) => `For every net euro you pay, ${amount} goes into your pension.`,
     currentYearNote: '📍 Shows year-1 amounts in current euros — not affected by the inflation toggle.',
+    thirdPillarTitle: '3rd pillar — own savings',
+    thirdPillarContrib: 'Own contribution (p/yr)',
+    thirdPillarNetCost: '= Net cost 3rd pillar',
   },
   capitalChart: {
     title: '📈 Pension capital over time',
@@ -491,8 +511,6 @@ const en: Translations = {
     title: '📊 Annual contribution build-up',
     subtitleNominal: 'How every euro goes to your pension: employer, yourself, and the tax benefit',
     subtitleReal: 'How every euro goes to your pension — real (today\'s euros)',
-    showYear: 'Show year',
-    to: 'to',
     employer: 'Employer',
     employeeGross: 'Employee (gross)',
     taxSaving: 'Tax saving',
@@ -569,14 +587,6 @@ const en: Translations = {
       title: '3. Extra personal savings (optional)',
       body: 'On top of your employer pension, you can save extra via a personal annuity (lijfrente) or bank savings product — the "3rd pillar". This is tax-deductible within your annual allowance (jaarruimte). Enter the monthly amount if applicable.',
     },
-    step4: {
-      title: '4. Reading the results',
-      body: 'The results at the top show your estimated final capital and monthly pension. The "Tax benefit" section shows what pension accrual actually costs you after tax relief. Use the "Nominal / Real" toggle to see what your pension is worth in today\'s purchasing power.',
-    },
-    step5: {
-      title: '5. Compare scenarios',
-      body: 'Investment return on your pension pot is uncertain. Three scenarios show the range: poor (2%), average (5%), and good (8%) per year. Use this to set realistic expectations — and to see that even the poor scenario produces significant pension capital.',
-    },
     prevBtn: '← Back',
     nextBtn: 'Next →',
     finishBtn: 'Start planning',
@@ -649,30 +659,20 @@ If you earn €50,000, your marginal rate is 36.97%. If you earn €80,000, your
 
 The difference between 2% and 8% over 30 years is enormous — see the chart. This illustrates the importance of your pension fund's investment policy.`,
     },
-    aow: {
-      title: 'Pension and AOW: the three pillars',
-      content: `The Dutch pension system has three pillars:
+    pillars: {
+      title: 'The three pension pillars',
+      content: `**This final capital is your 2nd pillar only** — the pension you build through your employer. All three pillars together determine your total retirement income:
 
-**1st pillar — AOW (General Old Age Pensions Act)**
-State pension for everyone who has lived/worked in the Netherlands. Amount: approximately €1,400/month (single) or €960/person (couple) in 2024.
+**1st pillar — AOW**
+State pension for everyone who has lived or worked in the Netherlands. Approximately €1,400/month (single) in 2024. Your AOW amount is adjustable under Advanced settings.
 
 **2nd pillar — Employer pension**
-The pension you build through work — this is what the main calculation is about. Defined contribution (DC): you build personal capital that is converted to a payout at retirement.
+This is what this calculator simulates. Employer and employee contribute premiums; at retirement the accumulated capital is converted to a monthly payout.
 
-**3rd pillar — Personal provisions**
-Annuities, bank savings, own investments. Voluntary and tax-advantaged.
+**3rd pillar — Personal supplement**
+Voluntary extra savings via an annuity (lijfrente) or bank savings product. Tax-deductible within your annual space (jaarruimte). Enter a monthly amount under "Extra personal savings" to include it in the simulation.
 
-The "Income Comparison" panel shows how all three add up.`,
-    },
-    pillars: {
-      title: 'What does this final capital include?',
-      content: `**This final capital is your 2nd pillar only** — the pension you build through your employer (employer contribution + your own contribution).
-
-Not included:
-- **AOW (1st pillar):** Everyone living/working in the Netherlands accrues AOW. This is approximately €1,400/month for singles in 2024. This comes on top of your employer pension.
-- **3rd pillar:** If you save extra via your own annuity or bank savings product, that is a separate pot. You can enter it via the "Extra personal savings" field.
-
-The "Income Comparison" panel below shows the combined picture of all pillars.`,
+The "Income Comparison" panel shows how all three pillars combine to determine your replacement rate.`,
     },
     extraSavings: {
       title: 'Extra pension savings: the 3rd pillar',

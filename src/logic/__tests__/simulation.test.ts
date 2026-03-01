@@ -6,6 +6,7 @@ import { SimParams, RETURN_RATES } from '../../types'
 // break when defaults change.
 const PARAMS: SimParams = {
   startingSalary: 60_000,
+  startingAge: 32,
   salaryGrowthRate: 0.02,
   employerPct: 0.10,
   employeePct: 0.05,

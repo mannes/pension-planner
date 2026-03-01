@@ -1,7 +1,8 @@
-import { SimParams } from '../types'
+import { SimParams, AOW_AGE } from '../types'
 import { useTranslation } from '../context/LanguageContext'
 import { InfoTooltip } from './InfoTooltip'
 import { InfoBox } from './InfoBox'
+import { calcPensioengrondslag, calcJaarruimte } from '../logic/pension'
 
 interface Props {
   params: SimParams
@@ -56,6 +57,24 @@ export function InputPanel({ params, onChange }: Props) {
     onChange({ ...params, [key]: value })
   }
 
+  function setAge(age: number) {
+    const years = Math.max(5, Math.min(45, AOW_AGE - age))
+    onChange({ ...params, startingAge: age, years })
+  }
+
+  const pensioengrondslag = calcPensioengrondslag(params.startingSalary, params.franchise)
+  const employerEuros = pensioengrondslag * params.employerPct
+  const employeeEuros = pensioengrondslag * params.employeePct
+  const { grossJaarruimte, pillar2Reduction, availableForThird } = calcJaarruimte(
+    params.startingSalary,
+    params.franchise,
+    employerEuros,
+    employeeEuros,
+  )
+  const currentThirdAnnual = params.extraSavingsMonthly * 12
+  const remainingJaarruimte = availableForThird - currentThirdAnnual
+  const overLimit = remainingJaarruimte < 0
+
   return (
     <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
       <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -78,6 +97,17 @@ export function InputPanel({ params, onChange }: Props) {
           min={0} max={0.08} step={0.005}
           format={pct}
           onChange={v => set('salaryGrowthRate', v)}
+        />
+        <SliderInput
+          label={t.inputs.startingAge}
+          tooltip={t.tooltips.startingAge}
+          value={params.startingAge}
+          min={18} max={62} step={1}
+          format={v => {
+            const yrs = Math.max(5, Math.min(45, AOW_AGE - v))
+            return `${v} (${yrs} ${t.inputs.yearsUnit})`
+          }}
+          onChange={setAge}
         />
       </div>
 
@@ -131,6 +161,43 @@ export function InputPanel({ params, onChange }: Props) {
         )}
       </div>
 
+      {/* Jaarruimte breakdown */}
+      <div className="mt-3 rounded-lg bg-gray-50 border border-gray-100 p-3">
+        <div className="flex items-center gap-1 mb-2">
+          <span className="text-xs font-semibold text-gray-700">{t.jaarruimte.title}</span>
+          <InfoTooltip text={t.jaarruimte.tooltip} />
+        </div>
+        <div className="space-y-1 text-xs">
+          <div className="flex justify-between text-gray-500">
+            <span>{t.jaarruimte.grossSpace}</span>
+            <span className="font-mono tabular-nums">€{Math.round(grossJaarruimte).toLocaleString('nl-NL')}</span>
+          </div>
+          <div className="flex justify-between text-gray-500">
+            <span>{t.jaarruimte.pillar2}</span>
+            <span className="font-mono tabular-nums text-red-500">− €{Math.round(pillar2Reduction).toLocaleString('nl-NL')}</span>
+          </div>
+          <div className="flex justify-between font-semibold text-gray-800 border-t border-gray-200 pt-1">
+            <span>{t.jaarruimte.availableThird}</span>
+            <span className="font-mono tabular-nums text-green-700">€{Math.round(availableForThird).toLocaleString('nl-NL')}</span>
+          </div>
+          {currentThirdAnnual > 0 && (
+            <>
+              <div className="flex justify-between text-gray-500 pt-0.5">
+                <span>{t.jaarruimte.youSave}</span>
+                <span className="font-mono tabular-nums">€{Math.round(currentThirdAnnual).toLocaleString('nl-NL')}</span>
+              </div>
+              <div className={`flex justify-between font-semibold ${overLimit ? 'text-red-600' : 'text-green-700'}`}>
+                <span>{overLimit ? t.jaarruimte.overLimit : t.jaarruimte.remaining}</span>
+                <span className="font-mono tabular-nums">
+                  {overLimit ? `− €${Math.round(-remainingJaarruimte).toLocaleString('nl-NL')}` : `€${Math.round(remainingJaarruimte).toLocaleString('nl-NL')}`}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 mt-2 leading-tight">{t.jaarruimte.approxNote}</p>
+      </div>
+
       <InfoBox title={t.infoBoxes.extraSavings.title} content={t.infoBoxes.extraSavings.content} />
 
       <div className="border-t border-gray-100 my-4" />
@@ -163,14 +230,6 @@ export function InputPanel({ params, onChange }: Props) {
           min={0} max={0.06} step={0.005}
           format={pct}
           onChange={v => set('inflationRate', v)}
-        />
-        <SliderInput
-          label={t.inputs.years}
-          tooltip="Aantal jaren pensioensopbouw te simuleren. Standaard 30 jaar."
-          value={params.years}
-          min={5} max={45} step={1}
-          format={v => `${v} ${t.inputs.yearsUnit}`}
-          onChange={v => set('years', v)}
         />
         <SliderInput
           label="AOW (maand)"

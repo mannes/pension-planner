@@ -1,5 +1,8 @@
 import { getMarginalRate } from './tax'
 
+// Maximum pensionable salary (maximaal pensioengevend loon) for jaarruimte calculation (2024/2025)
+export const MAX_PENSIOENGEVEND_LOON = 137_800
+
 /**
  * The pensioengrondslag (pension base) is the part of your salary
  * on which pension is accrued. It equals gross salary minus the AOW-franchise.
@@ -23,6 +26,37 @@ export interface ContributionBreakdown {
   totalFunded: number                // employer + employee gross (what enters the pension pot)
   marginalTaxRate: number
   leverageRatio: number              // totalFunded / netEmployeeCost
+}
+
+export interface JaarruimteResult {
+  grossJaarruimte: number      // 30% × premiegrondslag (capped at max pensioengevend loon)
+  pillar2Reduction: number     // employer + employee contributions (DC approximation for 6.27 × A)
+  availableForThird: number    // max(0, gross − pillar2 reduction)
+}
+
+/**
+ * Calculate the jaarruimte (annual space) for tax-deductible 3rd-pillar contributions.
+ *
+ * Formula (post-WTP, from 2024):
+ *   Gross jaarruimte = 30% × (min(salary, MAX_PENSIOENGEVEND_LOON) − franchise)
+ *   Reduction for 2nd pillar DC plan ≈ total contributions (employer + employee)
+ *   Available for 3rd pillar = max(0, gross − reduction)
+ *
+ * The exact reduction uses 6.27 × Factor_A (annual pension accrual). For DC plans this
+ * approximates to total contributions; actual results may differ slightly.
+ */
+export function calcJaarruimte(
+  grossSalary: number,
+  franchise: number,
+  employerContrib: number,  // employer contribution in € for this year
+  employeeContrib: number,  // employee contribution in € for this year
+): JaarruimteResult {
+  const cappedSalary = Math.min(grossSalary, MAX_PENSIOENGEVEND_LOON)
+  const premiegrondslag = Math.max(0, cappedSalary - franchise)
+  const grossJaarruimte = 0.30 * premiegrondslag
+  const pillar2Reduction = employerContrib + employeeContrib
+  const availableForThird = Math.max(0, grossJaarruimte - pillar2Reduction)
+  return { grossJaarruimte, pillar2Reduction, availableForThird }
 }
 
 /**

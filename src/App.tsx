@@ -91,7 +91,7 @@ function AppInner() {
 
           {/* Mission statement */}
           <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100 text-sm text-blue-800">
-            <strong>{lang === 'nl' ? 'Waarom dit tool?' : 'Why this tool?'}</strong>{' '}
+            <strong>{lang === 'nl' ? 'Waarom deze tool?' : 'Why this tool?'}</strong>{' '}
             {t.header.whyTool}
           </div>
         </div>

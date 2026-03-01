@@ -42,8 +42,6 @@ export function FirstTimeGuide({ onClose }: Props) {
     { ...t.guide.step1,   icon: '💶' },
     { ...t.guide.step2,   icon: '📋' },
     { ...t.guide.step3,   icon: '💰' },
-    { ...t.guide.step4,   icon: '📊' },
-    { ...t.guide.step5,   icon: '📈' },
   ]
 
   const totalSteps = steps.length

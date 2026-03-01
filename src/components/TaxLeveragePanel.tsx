@@ -50,6 +50,9 @@ export function TaxLeveragePanel({ result, realMode }: Props) {
     taxSaving,
     netEmployeeCost,
     marginalTaxRate,
+    extraSavingsAnnual,
+    extraSavingsTaxBenefit,
+    extraSavingsNetCost,
   } = result
 
   const totalFunded = employerContribution + employeeContributionGross
@@ -91,6 +94,22 @@ export function TaxLeveragePanel({ result, realMode }: Props) {
 
         <Row label={t.taxPanel.employerContrib} value={euro(employerContribution)} accent="text-blue-600" />
         <Row label={t.taxPanel.totalFunded} value={euro(totalFunded)} subtotal />
+
+        {extraSavingsAnnual > 0 && (
+          <>
+            <div className="h-3" />
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 pb-0.5">
+              {t.taxPanel.thirdPillarTitle}
+            </p>
+            <Row label={t.taxPanel.thirdPillarContrib} value={euro(extraSavingsAnnual)} />
+            <Row
+              label={`${t.taxPanel.taxSavingLabel} (${pct(marginalTaxRate)})`}
+              value={euro(extraSavingsTaxBenefit)}
+              indent negative accent="text-green-600"
+            />
+            <Row label={t.taxPanel.thirdPillarNetCost} value={euro(extraSavingsNetCost)} subtotal />
+          </>
+        )}
 
         <div className="h-3" />
 

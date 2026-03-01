@@ -25,6 +25,24 @@ An educational, interactive browser tool to simulate and compare pension capital
 - Tracked separately from 2nd pillar capital; shown alongside in results
 - Included in income comparison and monthly pension estimate
 
+### Jaarruimte (Annual Space)
+
+The jaarruimte is the maximum amount that can be contributed to a 3rd-pillar product with full tax deductibility (post-WTP formula, from 2024):
+
+```
+Gross jaarruimte = 30% × min(grossSalary, MAX_PENSIOENGEVEND_LOON=€137,800) − franchise)
+Pillar-2 reduction ≈ employer contributions + employee contributions (DC approximation)
+Available for 3rd pillar = max(0, gross jaarruimte − pillar-2 reduction)
+```
+
+Displayed as a compact breakdown card in the InputPanel, directly below the extra savings input. Updates live as salary and contribution sliders change. Shows:
+- Max space (30% × pensioengrondslag, capped)
+- Minus 2nd pillar contributions
+- = Available for 3rd pillar
+- If extra savings > 0: current 3rd pillar usage and remaining space (or "limit exceeded" in red)
+
+Note: the exact formula uses `6.27 × Factor_A` (formal pension accrual). For DC plans this approximates to total contributions; a disclaimer note directs users to the Belastingdienst for their exact jaarruimte.
+
 ### Tax Leverage Effect
 
 - Employee pension contributions are deducted from **bruto (gross) salary before income tax**
@@ -196,7 +214,7 @@ Key InfoBoxes:
 2. **Contribution based on pensioengrondslag**, not full salary
 3. **AOW-franchise** reduces the contribution base
 4. **Tax-exempt accumulation**: pot grows tax-free; tax paid on withdrawal
-5. **3rd pillar** (lijfrente/banksparen): tax-deductible within jaarruimte (simplified)
+5. **3rd pillar** (lijfrente/banksparen): tax-deductible within jaarruimte; jaarruimte calculated and displayed live (30% × pensioengrondslag − 2nd-pillar contributions)
 6. **Pension payouts are taxed** as Box 1 income at retirement-age rates (lower bracket 1 because AOW premium no longer applies)
 7. **Annuity conversion uses conservative rekenrente** (1.5%), not the investment return rate
 8. **Pension wealth is not liquid** — no early withdrawal modeled
@@ -211,9 +229,9 @@ Automated test suite using **Vitest** (`npm test`), covering all pure logic func
 | File | Tests | Coverage |
 |------|-------|----------|
 | `src/logic/__tests__/tax.test.ts` | 29 | `calculateTax`, `getMarginalRate`, `calculateTaxWithPensionDeduction`, `calcTaxSaving`, `calculateRetirementTax` |
-| `src/logic/__tests__/pension.test.ts` | 19 | `calcPensioengrondslag`, `calcContributions` |
+| `src/logic/__tests__/pension.test.ts` | 27 | `calcPensioengrondslag`, `calcJaarruimte`, `calcContributions` |
 | `src/logic/__tests__/simulation.test.ts` | 34 | `runSimulation` (2nd + 3rd pillar, edge cases), `toReal`, `estimateMonthlyPension` |
-| **Total** | **82** | |
+| **Total** | **90** | |
 
 Tests use explicit parameters (never `DEFAULT_PARAMS`) so they won't break when defaults change.
 

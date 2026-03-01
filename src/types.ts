@@ -1,5 +1,8 @@
+export const AOW_AGE = 67
+
 export interface SimParams {
   startingSalary: number        // Annual gross salary at year 0 (€)
+  startingAge: number           // Current age; years = AOW_AGE − startingAge (clamped 5–45)
   salaryGrowthRate: number      // Annual salary increase, decimal (e.g. 0.02)
   employerPct: number           // Employer contribution % of pensioengrondslag
   employeePct: number           // Employee contribution % of pensioengrondslag
@@ -7,7 +10,7 @@ export interface SimParams {
   franchise: number             // AOW-franchise (€), excluded from pension base
   franchiseGrowthRate: number   // Annual franchise increase (approx CPI-linked)
   inflationRate: number         // For real-value conversion
-  years: number                 // Simulation period (default 30)
+  years: number                 // Simulation period (derived: AOW_AGE − startingAge)
   aowMonthly: number            // Estimated AOW monthly payout (for income comparison)
 }
 
@@ -46,7 +49,8 @@ export const RETURN_RATES = {
 export type ReturnScenario = keyof typeof RETURN_RATES
 
 export const DEFAULT_PARAMS: SimParams = {
-  startingSalary: 45_000,
+  startingSalary: 60_000,
+  startingAge: 32,             // → 35 years until AOW at 67
   salaryGrowthRate: 0.02,
   employerPct: 0.015,
   employeePct: 0.025,
@@ -54,7 +58,7 @@ export const DEFAULT_PARAMS: SimParams = {
   franchise: 17_545,
   franchiseGrowthRate: 0.015,
   inflationRate: 0.02,
-  years: 30,
+  years: 35,
   aowMonthly: 1_400,
 }
 

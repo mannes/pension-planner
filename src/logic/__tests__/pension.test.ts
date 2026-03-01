@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcPensioengrondslag, calcContributions } from '../pension'
+import { calcPensioengrondslag, calcContributions, calcJaarruimte, MAX_PENSIOENGEVEND_LOON } from '../pension'
 
 const FRANCHISE = 17_545
 const RATE1 = 0.3697   // marginal rate for income below €75,518
@@ -26,6 +26,62 @@ describe('calcPensioengrondslag', () => {
   it('is never negative', () => {
     expect(calcPensioengrondslag(0, FRANCHISE)).toBeGreaterThanOrEqual(0)
     expect(calcPensioengrondslag(1_000, FRANCHISE)).toBeGreaterThanOrEqual(0)
+  })
+})
+
+// ─── calcJaarruimte ───────────────────────────────────────────────────────────
+
+describe('calcJaarruimte', () => {
+  const salary = 45_000
+  const base   = salary - FRANCHISE   // 27_455
+  const grossJaarruimte = 0.30 * base // 8_236.5
+
+  it('grossJaarruimte = 30% of pensioengrondslag', () => {
+    const r = calcJaarruimte(salary, FRANCHISE, 0, 0)
+    expect(r.grossJaarruimte).toBeCloseTo(grossJaarruimte, 6)
+  })
+
+  it('pillar2Reduction equals sum of employer and employee contributions', () => {
+    const employer = 1_000
+    const employee = 500
+    const r = calcJaarruimte(salary, FRANCHISE, employer, employee)
+    expect(r.pillar2Reduction).toBe(1_500)
+  })
+
+  it('availableForThird = grossJaarruimte − pillar2Reduction', () => {
+    const employer = 1_000
+    const employee = 500
+    const r = calcJaarruimte(salary, FRANCHISE, employer, employee)
+    expect(r.availableForThird).toBeCloseTo(grossJaarruimte - 1_500, 6)
+  })
+
+  it('availableForThird is 0 when 2nd pillar fills the full jaarruimte', () => {
+    const r = calcJaarruimte(salary, FRANCHISE, grossJaarruimte, 0)
+    expect(r.availableForThird).toBe(0)
+  })
+
+  it('availableForThird never goes negative when 2nd pillar exceeds the cap', () => {
+    const r = calcJaarruimte(salary, FRANCHISE, 50_000, 0)
+    expect(r.availableForThird).toBe(0)
+  })
+
+  it('salary below franchise yields zero jaarruimte', () => {
+    const r = calcJaarruimte(10_000, FRANCHISE, 0, 0)
+    expect(r.grossJaarruimte).toBe(0)
+    expect(r.availableForThird).toBe(0)
+  })
+
+  it('salary above MAX_PENSIOENGEVEND_LOON is capped', () => {
+    const highSalary = 200_000
+    const expected = 0.30 * (MAX_PENSIOENGEVEND_LOON - FRANCHISE)
+    const r = calcJaarruimte(highSalary, FRANCHISE, 0, 0)
+    expect(r.grossJaarruimte).toBeCloseTo(expected, 6)
+  })
+
+  it('salary exactly at MAX_PENSIOENGEVEND_LOON is not further capped', () => {
+    const r = calcJaarruimte(MAX_PENSIOENGEVEND_LOON, FRANCHISE, 0, 0)
+    const expected = 0.30 * (MAX_PENSIOENGEVEND_LOON - FRANCHISE)
+    expect(r.grossJaarruimte).toBeCloseTo(expected, 6)
   })
 })
 

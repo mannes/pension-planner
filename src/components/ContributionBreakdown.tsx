@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer
@@ -44,21 +43,16 @@ function CustomTooltip({ active, payload, label }: {
 
 export function ContributionBreakdown({ results, realMode, inflationRate }: Props) {
   const { t } = useTranslation()
-  const [rangeStart, setRangeStart] = useState(1)
-  const [rangeEnd, setRangeEnd] = useState(results.length)
-  const maxYear = results.length
 
-  const visible = results
-    .filter(r => r.year >= rangeStart && r.year <= rangeEnd)
-    .map(r => {
-      const adj = (v: number) => Math.round(realMode ? toReal(v, r.year, inflationRate) : v)
-      return {
-        year: r.year,
-        [t.breakdown.employer]:       adj(r.employerContribution),
-        [t.breakdown.employeeGross]:  adj(r.employeeContributionGross),
-        [t.breakdown.taxSaving]:      adj(r.taxSaving),
-      }
-    })
+  const data = results.map(r => {
+    const adj = (v: number) => Math.round(realMode ? toReal(v, r.year, inflationRate) : v)
+    return {
+      year: r.year,
+      [t.breakdown.employer]:       adj(r.employerContribution),
+      [t.breakdown.employeeGross]:  adj(r.employeeContributionGross),
+      [t.breakdown.taxSaving]:      adj(r.taxSaving),
+    }
+  })
 
   return (
     <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
@@ -69,34 +63,8 @@ export function ContributionBreakdown({ results, realMode, inflationRate }: Prop
         {realMode ? t.breakdown.subtitleReal : t.breakdown.subtitleNominal}
       </p>
 
-      {/* Year range selector */}
-      <div className="flex items-center gap-3 mb-4 bg-gray-50 rounded-lg p-3">
-        <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{t.breakdown.showYear}</span>
-        <div className="flex items-center gap-2 flex-1">
-          <input
-            type="range"
-            min={1} max={maxYear - 1} step={1}
-            value={rangeStart}
-            onChange={e => setRangeStart(Math.min(Number(e.target.value), rangeEnd - 1))}
-            className="flex-1 h-1.5 accent-blue-600"
-          />
-          <span className="text-xs font-mono text-blue-700 w-8 text-right">{rangeStart}</span>
-        </div>
-        <span className="text-xs text-gray-400">{t.breakdown.to}</span>
-        <div className="flex items-center gap-2 flex-1">
-          <input
-            type="range"
-            min={2} max={maxYear} step={1}
-            value={rangeEnd}
-            onChange={e => setRangeEnd(Math.max(Number(e.target.value), rangeStart + 1))}
-            className="flex-1 h-1.5 accent-blue-600"
-          />
-          <span className="text-xs font-mono text-blue-700 w-8">{rangeEnd}</span>
-        </div>
-      </div>
-
       <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={visible} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+        <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey="year" tick={{ fontSize: 10 }} />
           <YAxis tickFormatter={euroK} tick={{ fontSize: 10 }} width={50} />

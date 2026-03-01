@@ -176,7 +176,6 @@ export function SummaryTable({ results, realMode, inflationRate, hasThirdPillar 
       </div>
 
       <InfoBox title={t.infoBoxes.pillars.title} content={t.infoBoxes.pillars.content} />
-      <InfoBox title={t.infoBoxes.aow.title} content={t.infoBoxes.aow.content} />
     </section>
   )
 }
