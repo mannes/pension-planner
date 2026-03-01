@@ -97,20 +97,21 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 
 ## Simulation Parameters
 
-| Parameter               | Default       | Notes                                        |
-|-------------------------|---------------|----------------------------------------------|
-| Starting gross salary   | €45,000       | Annual bruto salary at year 0                |
-| Salary growth rate      | 2%/year       | Annual raise                                 |
-| Simulation period       | 30 years      | Adjustable 5–45 years                        |
-| Employer contribution % | 1.5%          | % of pensioengrondslag                       |
-| Employee contribution % | 2.5%          | % of pensioengrondslag                       |
-| Extra savings/month     | €0            | 3rd pillar; tax-deductible at marginal rate  |
-| AOW franchise           | €17,545       | Updated annually by government               |
-| Franchise growth rate   | 1.5%/year     | Approximate CPI-linked growth                |
-| Inflation rate          | 2%/year       | Used for real-value toggle                   |
-| AOW monthly (gross)     | €1,400        | Gross bruto; retirement tax applied on top   |
-| Return scenarios        | 2% / 5% / 8% | Bad / Normal / Good (accumulation only)      |
-| Annuity rate            | 1.5%          | Fixed; used for capital → monthly pension    |
+| Parameter               | Default       | Notes                                                          |
+|-------------------------|---------------|----------------------------------------------------------------|
+| Starting gross salary   | €60,000       | Annual bruto salary at year 0                                  |
+| Starting age            | 32            | Simulation period = max(5, min(45, AOW_AGE − startingAge))    |
+| Simulation period       | 35 years      | Derived from age; AOW age = 67                                 |
+| Salary growth rate      | 2%/year       | Annual raise                                                   |
+| Employer contribution % | 1.5%          | % of pensioengrondslag                                         |
+| Employee contribution % | 2.5%          | % of pensioengrondslag                                         |
+| Extra savings/month     | €0            | 3rd pillar; tax-deductible at marginal rate                    |
+| AOW franchise           | €17,545       | Updated annually by government                                 |
+| Franchise growth rate   | 1.5%/year     | Approximate CPI-linked growth                                  |
+| Inflation rate          | 2%/year       | Used for real-value toggle                                     |
+| AOW monthly (gross)     | €1,400        | Gross bruto; retirement tax applied on top                     |
+| Return scenarios        | 2% / 5% / 8% | Bad / Normal / Good (accumulation only)                        |
+| Annuity rate            | 1.5%          | Fixed; used for capital → monthly pension                      |
 
 ---
 
@@ -118,28 +119,34 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 
 ### 1. Results Summary (prominent, at top)
 - 3 scenario cards: bad / normal / good
-- Per card: final 2nd pillar capital, final 3rd pillar capital (if any), combined total, total deposits, total tax savings, net cost, estimated monthly pension (using 1.5% annuity rate)
+- Per card:
+  - Final 2nd pillar capital (big number), final 3rd pillar capital (if any), combined total
+  - **2nd pillar deposits**: total employer+employee gross, total tax savings, net cost to employee
+  - **3rd pillar deposits** (if configured): total deposited, tax savings, net cost — shown separately so user can see full input picture
+  - Estimated monthly pension (using 1.5% annuity rate on combined capital)
 - Disclaimer notes: accumulation vs payout rate distinction; already-accrued rights not included; link to mijnpensioenoverzicht.nl
 - Blue note: "This is 2nd pillar only — AOW and 3rd pillar come on top"
-- Expandable InfoBoxes: "What's included?" and "AOW & the 3 pillars"
+- Expandable InfoBox: "AOW & the 3 pillars"
 
-### 2. Tax Leverage Panel (year 1 snapshot)
-- Waterfall breakdown: gross salary → minus franchise → pension base → employee gross → tax saving → net cost → employer → total funded
-- Leverage ratio: total funded / net employee cost
-- When real mode is active: note explaining year-1 values are in current euros (not affected by toggle)
-- Expandable InfoBoxes: tax leverage, pensioengrondslag, Dutch tax brackets
-
-### 3. Income Comparison
-- Current net monthly income (year 1, after working-age tax and employee contribution)
+### 2. Income Comparison
+- Reference salary depends on mode:
+  - **Nominal mode**: final simulation year's net salary (both salary and pension in future €s → fair ratio)
+  - **Real mode**: year-1 net salary (both deflated to today's €s → fair ratio)
 - Per pillar (gross bruto amounts):
-  - 2nd pillar monthly pension (normal scenario, year N, at 1.5% annuity rate)
+  - 2nd pillar monthly pension (normal scenario, at 1.5% annuity rate)
   - 3rd pillar monthly pension (normal scenario, if configured)
   - AOW estimate (gross, adjustable via slider)
 - Gross total → minus retirement-age Box 1 tax (19.07%/36.97%/49.50%) → **net monthly pension**
-- Replacement rate = net pension / net current income (net/net comparison)
+- Replacement rate = net pension / net reference salary (net/net comparison)
 - Gauge visualization with status: Good (≥70%) / Moderate (50–69%) / Low (<50%)
 - Target shown on gauge: 70–80%
-- Warning shown in nominal mode (comparison is misleading across time)
+
+### 3. Tax Leverage Panel (year 1 snapshot)
+- Waterfall breakdown: gross salary → minus franchise → pension base → employee gross → tax saving → net cost → employer → total funded
+- 3rd pillar section (if configured): extra savings → tax benefit → net cost
+- Leverage ratio: total funded / net employee cost; body text shows `euro(leverageRatio)` as plain string
+- When real mode is active: note explaining year-1 values are in current euros (not affected by toggle)
+- Expandable InfoBoxes: tax leverage, pensioengrondslag, Dutch tax brackets
 
 ### 4. Capital Chart
 - Line chart: 3 scenarios over full simulation period
@@ -148,7 +155,7 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 
 ### 5. Contribution Breakdown
 - Stacked bar chart: employer / employee gross / tax saving per year
-- User-selectable year range via dual sliders
+- Always shows full simulation period (no range selector)
 
 ---
 
@@ -161,11 +168,11 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 - Default language: Dutch
 
 ### Nominal / Real Toggle
-- Global toggle in header
+- Global toggle in header (`data-guide-step="real-toggle"` for guide highlighting)
 - Switches all charts and summary tables between nominal euros and real (inflation-adjusted) euros
 - Inflation rate adjustable in advanced settings
 - TaxLeveragePanel: unaffected (year-1 values are always "now"); shows explanatory note in real mode
-- IncomeComparisonPanel: shows warning in nominal mode (future vs current euros are not comparable)
+- IncomeComparisonPanel: reference salary switches between final-year (nominal) and year-1 (real) — both comparisons are fair within their respective mode
 
 ### Educational Help System
 1. **InfoTooltip** — `(?)` icon on every input label, hover/click popover
@@ -186,9 +193,10 @@ Key InfoBoxes:
 - Warns: tool is AI-generated ("Claude Slop"), for indication only, verify with pension fund / advisor
 
 ### First-Time Interactive Guide
-- **Fixed bottom-right corner panel** (320px wide, `fixed bottom-6 right-6`) — not a full modal
+- **Mobile**: full-width bottom sheet (`fixed bottom-0 left-0 right-0 rounded-t-2xl`)
+- **Desktop (sm+)**: corner panel (`sm:bottom-6 sm:right-6 sm:w-80 sm:rounded-2xl`)
 - Triggered on first visit (localStorage flag: `pension-planner-guide-seen`)
-- 6 steps: Welcome → Salary → Pension deal → Extra savings → Reading results → Scenarios
+- **4 steps**: Welcome → Set your situation → Nominal vs Real → Reading the results
 - On each step: highlights the relevant UI element via `data-guide-step` attribute + CSS pulse animation (`.guide-highlighted`)
 - Element scrolled into view smoothly on step change; highlights cleaned up on guide close
 - Progress bar + step dots (clickable)
@@ -199,12 +207,10 @@ Key InfoBoxes:
 
 | Step | Highlights element (`data-guide-step`) |
 |------|----------------------------------------|
-| 0 — Welcome     | none               |
-| 1 — Salary      | `salary`           |
-| 2 — Contributions | `contributions`  |
-| 3 — Extra savings | `extra-savings`  |
-| 4 — Results     | `results`          |
-| 5 — Scenarios   | `capital-chart`    |
+| 0 — Welcome         | none            |
+| 1 — Set situation   | `salary`        |
+| 2 — Nominal vs Real | `real-toggle`   |
+| 3 — Results         | `results`       |
 
 ---
 
@@ -302,11 +308,11 @@ pension-planner/
         ├── InfoTooltip.tsx       # (?) hover popover
         ├── InfoBox.tsx           # Collapsible deep-dive explanation panel
         ├── AISlopWarning.tsx     # One-time dismissable amber disclaimer
-        ├── FirstTimeGuide.tsx    # 6-step corner panel with element highlighting
+        ├── FirstTimeGuide.tsx    # 4-step guide; bottom sheet on mobile, corner panel on desktop
         ├── InputPanel.tsx        # Sliders + extra savings input (data-guide-step attrs)
         ├── SummaryTable.tsx      # Results at top (2nd + 3rd pillar, 3 scenarios)
         ├── TaxLeveragePanel.tsx  # Year-1 waterfall + leverage ratio
         ├── IncomeComparisonPanel.tsx  # Gross→net pension, retirement tax, replacement rate
         ├── CapitalChart.tsx      # Line chart: 3 scenarios over time
-        └── ContributionBreakdown.tsx  # Stacked bar with year-range selector
+        └── ContributionBreakdown.tsx  # Stacked bar, full period always shown
 ```

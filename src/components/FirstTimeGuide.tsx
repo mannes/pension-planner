@@ -5,12 +5,10 @@ const STORAGE_KEY = 'pension-planner-guide-seen'
 
 // Maps guide step index → data-guide-step attribute value (null = no highlight)
 const STEP_TARGETS: Array<string | null> = [
-  null,             // 0: welcome
-  'salary',         // 1: set your salary
-  'contributions',  // 2: pension deal (employer/employee %)
-  'extra-savings',  // 3: extra savings
-  'results',        // 4: reading the results
-  'capital-chart',  // 5: scenarios
+  null,           // 0: welcome
+  'salary',       // 1: set your situation
+  'real-toggle',  // 2: nominal vs real
+  'results',      // 3: reading the results
 ]
 
 interface Props {
@@ -39,9 +37,9 @@ export function FirstTimeGuide({ onClose }: Props) {
 
   const steps = [
     { ...t.guide.welcome, icon: '🏦' },
-    { ...t.guide.step1,   icon: '💶' },
-    { ...t.guide.step2,   icon: '📋' },
-    { ...t.guide.step3,   icon: '💰' },
+    { ...t.guide.step1,   icon: '⚙️' },
+    { ...t.guide.step2,   icon: '📊' },
+    { ...t.guide.step3,   icon: '💡' },
   ]
 
   const totalSteps = steps.length
@@ -73,7 +71,7 @@ export function FirstTimeGuide({ onClose }: Props) {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl rounded-t-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:w-80 sm:border sm:border-gray-200 sm:rounded-2xl overflow-hidden">
       {/* Progress bar */}
       <div className="h-1 bg-gray-100">
         <div

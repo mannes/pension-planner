@@ -65,7 +65,7 @@ function AppInner() {
               </button>
 
               {/* Nominal / Real toggle */}
-              <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1.5">
+              <div data-guide-step="real-toggle" className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1.5">
                 <span className={`text-xs font-medium ${!realMode ? 'text-blue-700' : 'text-gray-400'}`}>
                   {t.header.nominal}
                 </span>
@@ -110,7 +110,7 @@ function AppInner() {
 
           {/* Right: result panels — summary first (most prominent) */}
           <div className="flex-1 min-w-0 space-y-6">
-            {/* 1. RESULTS — moved to top, highlighted border */}
+            {/* 1. RESULTS */}
             <SummaryTable
               results={results}
               realMode={realMode}
@@ -118,15 +118,15 @@ function AppInner() {
               hasThirdPillar={hasThirdPillar}
             />
 
-            {/* 2. Tax leverage breakdown */}
-            {year1 && <TaxLeveragePanel result={year1} realMode={realMode} />}
-
-            {/* 3. Income comparison */}
+            {/* 2. Income comparison */}
             <IncomeComparisonPanel
               results={results}
               params={params}
               realMode={realMode}
             />
+
+            {/* 3. Tax leverage breakdown */}
+            {year1 && <TaxLeveragePanel result={year1} realMode={realMode} />}
 
             {/* 4. Capital chart */}
             <CapitalChart

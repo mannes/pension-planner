@@ -52,8 +52,8 @@ export const DEFAULT_PARAMS: SimParams = {
   startingSalary: 60_000,
   startingAge: 32,             // → 35 years until AOW at 67
   salaryGrowthRate: 0.02,
-  employerPct: 0.015,
-  employeePct: 0.025,
+  employerPct: 0.10,
+  employeePct: 0.05,
   extraSavingsMonthly: 0,
   franchise: 17_545,
   franchiseGrowthRate: 0.015,

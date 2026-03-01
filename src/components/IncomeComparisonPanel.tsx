@@ -47,13 +47,15 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
   const lastYear = results[results.length - 1]
   const years = results.length
 
-  // Current net monthly income (year 1, after tax, accounting for pension deduction)
   const year1 = results[0]
+
+  // Reference salary: nominal → final year (both sides in future €), real → year 1 (both sides in today's €)
+  const refYear = realMode ? year1 : lastYear
   const annualTax = calculateTaxWithPensionDeduction(
-    year1.grossSalary,
-    year1.employeeContributionGross
+    refYear.grossSalary,
+    refYear.employeeContributionGross
   )
-  const currentNetMonthly = (year1.grossSalary - annualTax - year1.employeeContributionGross) / 12
+  const currentNetMonthly = (refYear.grossSalary - annualTax - refYear.employeeContributionGross) / 12
 
   // 2nd pillar capital (normal scenario) — nominal or real
   const cap2Normal = realMode
@@ -108,20 +110,14 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
 
   return (
     <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-1">
-        <span>⚖️</span> {t.incomeComparison.title}
+      <h2 className="text-base font-bold text-gray-900 mb-1">
+        {t.incomeComparison.title}
       </h2>
       <p className="text-xs text-gray-500 mb-2">
         {t.incomeComparison.subtitle} ({t.incomeComparison.normalScenario}
         {realMode ? ', reëel' : ', nominaal'})
       </p>
-      {!realMode && (
-        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-          ⚠️ <strong>{t.incomeComparison.nominalWarningTitle}</strong>{' '}
-          {t.incomeComparison.nominalWarningBody}
-        </div>
-      )}
-      {realMode && <div className="mb-4" />}
+      <div className="mb-4" />
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
         {/* Gauge */}
@@ -149,10 +145,14 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
 
           <div className="bg-gray-50 rounded-lg p-3 mb-3">
             <div className="flex justify-between text-sm mb-0.5">
-              <span className="text-gray-600 font-medium">{t.incomeComparison.currentNetMonthly}</span>
+              <span className="text-gray-600 font-medium">
+                {realMode ? t.incomeComparison.currentNetMonthly : t.incomeComparison.finalNetMonthly}
+              </span>
               <span className="font-mono font-bold text-gray-800">{euro(currentNetMonthly)}</span>
             </div>
-            <p className="text-xs text-gray-400">Jaar 1, na belasting en werknemersbijdrage</p>
+            <p className="text-xs text-gray-400">
+              {realMode ? t.incomeComparison.refNoteReal : t.incomeComparison.refNoteNominal}
+            </p>
           </div>
 
           <Bar label={`${t.incomeComparison.pillar2} ${t.incomeComparison.grossNote}`} value={monthly2nd} total={currentNetMonthly} color="#3b82f6" />

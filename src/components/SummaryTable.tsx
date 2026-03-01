@@ -21,6 +21,9 @@ interface ScenarioCardProps {
   totalContributions: number
   totalTaxSavings: number
   totalNetCost: number
+  total3rdDeposited: number
+  total3rdTaxSavings: number
+  total3rdNetCost: number
   monthlyPension: number
   accent: string
   bg: string
@@ -31,14 +34,18 @@ interface ScenarioCardProps {
   netCostLabel: string
   monthlyLabel: string
   rateLabel: string
+  pillar3SectionLabel: string
   hasThirdPillar: boolean
 }
 
 function ScenarioCard({
   label, returnRate, finalCapital2nd, finalCapital3rd,
-  totalContributions, totalTaxSavings, totalNetCost, monthlyPension,
+  totalContributions, totalTaxSavings, totalNetCost,
+  total3rdDeposited, total3rdTaxSavings, total3rdNetCost,
+  monthlyPension,
   accent, bg, perMonth, endCapitalLabel, totalDepositedLabel,
-  totalTaxLabel, netCostLabel, monthlyLabel, rateLabel, hasThirdPillar,
+  totalTaxLabel, netCostLabel, monthlyLabel, rateLabel,
+  pillar3SectionLabel, hasThirdPillar,
 }: ScenarioCardProps) {
   const combinedCapital = finalCapital2nd + finalCapital3rd
 
@@ -78,6 +85,27 @@ function ScenarioCard({
           <span>{netCostLabel}</span>
           <span className="font-mono">{euro(totalNetCost)}</span>
         </div>
+
+        {hasThirdPillar && (
+          <>
+            <div className="pt-1.5 border-t border-gray-200">
+              <span className="font-semibold text-purple-700">{pillar3SectionLabel}</span>
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>{totalDepositedLabel}</span>
+              <span className="font-mono font-medium">{euro(total3rdDeposited)}</span>
+            </div>
+            <div className="flex justify-between text-green-700">
+              <span>{totalTaxLabel}</span>
+              <span className="font-mono font-medium">{euro(total3rdTaxSavings)}</span>
+            </div>
+            <div className="flex justify-between text-gray-800 font-semibold border-t border-gray-200 pt-1.5">
+              <span>{netCostLabel}</span>
+              <span className="font-mono">{euro(total3rdNetCost)}</span>
+            </div>
+          </>
+        )}
+
         <div className="flex justify-between text-gray-800 font-semibold border-t border-gray-200 pt-1.5">
           <span>{monthlyLabel}</span>
           <span className="font-mono">{euro(monthlyPension)}{perMonth}</span>
@@ -97,11 +125,14 @@ export function SummaryTable({ results, realMode, inflationRate, hasThirdPillar 
 
   const totals = results.reduce(
     (acc, r) => ({
-      contributions: acc.contributions + r.totalAnnualContribution,
-      taxSavings:    acc.taxSavings    + r.taxSaving,
-      netCost:       acc.netCost       + r.netEmployeeCost,
+      contributions:    acc.contributions    + r.totalAnnualContribution,
+      taxSavings:       acc.taxSavings       + r.taxSaving,
+      netCost:          acc.netCost          + r.netEmployeeCost,
+      extra3Deposited:  acc.extra3Deposited  + r.extraSavingsAnnual,
+      extra3TaxSavings: acc.extra3TaxSavings + r.extraSavingsTaxBenefit,
+      extra3NetCost:    acc.extra3NetCost    + r.extraSavingsNetCost,
     }),
-    { contributions: 0, taxSavings: 0, netCost: 0 }
+    { contributions: 0, taxSavings: 0, netCost: 0, extra3Deposited: 0, extra3TaxSavings: 0, extra3NetCost: 0 }
   )
 
   function getCapital2nd(key: 'Bad' | 'Normal' | 'Good') {
@@ -134,6 +165,10 @@ export function SummaryTable({ results, realMode, inflationRate, hasThirdPillar 
     netCostLabel: t.summary.yourNetCost,
     monthlyLabel: t.summary.monthlyPension,
     rateLabel: `%/${t.inputs.yearsUnit.slice(0, 4)}`,
+    pillar3SectionLabel: t.summary.pillar3Section,
+    total3rdDeposited: totals.extra3Deposited,
+    total3rdTaxSavings: totals.extra3TaxSavings,
+    total3rdNetCost: totals.extra3NetCost,
     hasThirdPillar,
   }
 

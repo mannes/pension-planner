@@ -109,6 +109,7 @@ export interface Translations {
     ratePerYear: string
     disclaimer: string
     pillarsNote: string
+    pillar3Section: string
   }
   incomeComparison: {
     title: string
@@ -134,8 +135,9 @@ export interface Translations {
     statusLowNote: string
     scenarioLabel: string
     normalScenario: string
-    nominalWarningTitle: string
-    nominalWarningBody: string
+    finalNetMonthly: string
+    refNoteNominal: string
+    refNoteReal: string
   }
   warning: {
     title: string
@@ -273,6 +275,7 @@ const nl: Translations = {
     ratePerYear: '%/jaar',
     disclaimer: 'Het geschatte maandpensioen is een ruwe indicatie. Kapitaalopbouw gebruikt het gekozen rendement (2/5/8%); de omzetting naar maandpensioen gebruikt een vaste rekenrente van 1,5% over 20 jaar — conform conservatieve pensioenfondspraktijk, los van het beleggingsrendement. Dit hulpmiddel rekent alleen vooruit: al opgebouwde rechten uit eerdere jaren zijn niet inbegrepen. Raadpleeg mijnpensioenoverzicht.nl voor een prognose op basis van jouw werkelijke fonds.',
     pillarsNote: 'Dit eindkapitaal is uitsluitend je 2e pijler pensioen (via werkgever + eigen bijdrage). De AOW (~€1.400/mnd alleenstaand) en eventuele eigen spaarpot (3e pijler) komen hier nog bovenop. Zie "Inkomensvergelijking" hieronder voor het totaalplaatje.',
+    pillar3Section: '3e pijler inleg',
   },
   incomeComparison: {
     title: '⚖️ Pensioen vs. huidig inkomen',
@@ -298,8 +301,9 @@ const nl: Translations = {
     statusLowNote: 'Je pensioen vervangt minder dan de helft van je inkomen. Extra sparen is sterk aan te raden.',
     scenarioLabel: 'Scenario',
     normalScenario: 'Normaal (5%)',
-    nominalWarningTitle: 'Let op: nominale vergelijking',
-    nominalWarningBody: 'Toekomstige pensioenbedragen zijn in euro\'s van jaar N (opgepompt door inflatie), je huidig inkomen is in euro\'s van nu. Dit maakt de vervangingsratio misleidend hoog. Schakel naar "Reëel" voor een eerlijke vergelijking.',
+    finalNetMonthly: 'Nettosalaris bij pensionering',
+    refNoteNominal: 'Laatste simulatiejaar, toekomstige euro\'s — zelfde maatstaf als pensioen',
+    refNoteReal: 'Jaar 1, gecorrigeerd voor inflatie (koopkracht)',
   },
   warning: {
     title: '⚠️ Informatief hulpmiddel — geen financieel advies',
@@ -537,6 +541,7 @@ const en: Translations = {
     ratePerYear: '%/year',
     disclaimer: 'The estimated monthly pension is a rough indication. Capital accumulation uses the selected return rate (2/5/8%); conversion to monthly pension uses a fixed annuity rate of 1.5% over 20 years — in line with conservative pension fund practice, separate from the investment return. This tool only projects forward: pension rights already accrued from past years of service are not included. Check mijnpensioenoverzicht.nl for a projection from your actual fund.',
     pillarsNote: 'This capital is your 2nd pillar pension only (employer + employee contributions). AOW (~€1,400/month single) and any personal savings (3rd pillar) are on top of this. See "Income Comparison" below for the full picture.',
+    pillar3Section: '3rd pillar deposits',
   },
   incomeComparison: {
     title: '⚖️ Pension vs. current income',
@@ -562,8 +567,9 @@ const en: Translations = {
     statusLowNote: 'Your pension replaces less than half your income. Additional saving is strongly recommended.',
     scenarioLabel: 'Scenario',
     normalScenario: 'Average (5%)',
-    nominalWarningTitle: 'Note: nominal comparison',
-    nominalWarningBody: 'Future pension amounts are in year-N euros (inflated), while your current income is in today\'s euros. This makes the replacement rate misleadingly high. Switch to "Real" for a fair comparison.',
+    finalNetMonthly: 'Net salary at retirement',
+    refNoteNominal: 'Final simulation year, future euros — same yardstick as pension income',
+    refNoteReal: 'Year 1, adjusted for inflation (purchasing power)',
   },
   warning: {
     title: '⚠️ Informational tool — not financial advice',
@@ -573,19 +579,19 @@ const en: Translations = {
   guide: {
     welcome: {
       title: 'Welcome to the Pension Planner!',
-      body: 'This tool shows you how your Dutch pension builds up and what it really costs you — taking Dutch tax rules into account. Let\'s take a quick tour through the settings.',
+      body: 'This tool shows how your Dutch pension builds up and what it really costs you — accounting for Dutch tax rules. Quick tour in 3 steps.',
     },
     step1: {
-      title: '1. Your gross salary',
-      body: 'Set your current gross annual salary using the slider on the left. You\'ll find this on your payslip (loonstrook) or in your employment contract. Gross salary is the amount before tax and deductions.',
+      title: '1. Set your situation',
+      body: 'Adjust your gross salary, age and pension contribution percentages using the sliders. You\'ll find employer/employee rates in your employment contract or cao. Not sure? Check MijnPensioenoverzicht.nl or ask HR.',
     },
     step2: {
-      title: '2. Your pension deal',
-      body: 'Both employer and employee pay a percentage of your pension base. Check your employment contract or collective agreement (cao) for the exact percentages. Not sure? Ask your HR department or check MijnPensioenoverzicht.nl.',
+      title: '2. Nominal vs. Real',
+      body: 'The toggle in the top-right switches between two views. Nominal shows future euro amounts as-is — but inflation erodes purchasing power. Real adjusts for inflation and shows what your pension is worth in today\'s euros. Over 30 years this makes an enormous difference!',
     },
     step3: {
-      title: '3. Extra personal savings (optional)',
-      body: 'On top of your employer pension, you can save extra via a personal annuity (lijfrente) or bank savings product — the "3rd pillar". This is tax-deductible within your annual allowance (jaarruimte). Enter the monthly amount if applicable.',
+      title: '3. Reading the results',
+      body: 'At the top you see your estimated final capital and monthly pension across three scenarios (2%, 5%, 8% return). The "Tax benefit" section shows what it actually costs you after tax relief. Spoiler: your net cost is usually much lower than you think!',
     },
     prevBtn: '← Back',
     nextBtn: 'Next →',

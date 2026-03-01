@@ -119,7 +119,7 @@ export function TaxLeveragePanel({ result, realMode }: Props) {
             <span className="text-xl font-bold">{leverageRatio.toFixed(2)}×</span>
           </div>
           <p className="text-xs text-blue-100 mt-1">
-            {t.taxPanel.leverageBody(<strong className="text-white">{euro(leverageRatio)}</strong> as unknown as string)}
+            {t.taxPanel.leverageBody(euro(leverageRatio))}
           </p>
         </div>
       </div>
