@@ -12,11 +12,36 @@ import { FirstTimeGuide, shouldShowGuide } from './components/FirstTimeGuide'
 import { IncomeComparisonPanel } from './components/IncomeComparisonPanel'
 import { AboutModal } from './components/AboutModal'
 
+const PERSIST_FLAG_KEY = 'pension-planner-persist'
+const PERSIST_PARAMS_KEY = 'pension-planner-params'
+const PERSIST_OVERVIEW_KEY = 'pension-planner-overview'
+
+function loadPersistedParams(): SimParams {
+  try {
+    const stored = localStorage.getItem(PERSIST_PARAMS_KEY)
+    if (stored) return { ...DEFAULT_PARAMS, ...JSON.parse(stored) }
+  } catch { /* ignore */ }
+  return DEFAULT_PARAMS
+}
+
+function loadPersistedOverview(): PensioenoverzichtData | null {
+  try {
+    const stored = localStorage.getItem(PERSIST_OVERVIEW_KEY)
+    if (stored) return JSON.parse(stored) as PensioenoverzichtData
+  } catch { /* ignore */ }
+  return null
+}
+
 function AppInner() {
   const { t, lang, setLang } = useTranslation()
-  const [params, setParams] = useState<SimParams>(DEFAULT_PARAMS)
+  const [persist, setPersist] = useState(() => localStorage.getItem(PERSIST_FLAG_KEY) === 'true')
+  const [params, setParams] = useState<SimParams>(() =>
+    localStorage.getItem(PERSIST_FLAG_KEY) === 'true' ? loadPersistedParams() : DEFAULT_PARAMS
+  )
   const [realMode, setRealMode] = useState(false)
-  const [pensioenoverzicht, setPensioenoverzicht] = useState<PensioenoverzichtData | null>(null)
+  const [pensioenoverzicht, setPensioenoverzicht] = useState<PensioenoverzichtData | null>(() =>
+    localStorage.getItem(PERSIST_FLAG_KEY) === 'true' ? loadPersistedOverview() : null
+  )
 
   function aowMonthlyFromFile(data: PensioenoverzichtData, status: 'single' | 'partner'): number | null {
     const annual = status === 'partner'
@@ -27,6 +52,10 @@ function AppInner() {
 
   function handlePensioenoverzicht(data: PensioenoverzichtData | null) {
     setPensioenoverzicht(data)
+    if (persist) {
+      if (data) localStorage.setItem(PERSIST_OVERVIEW_KEY, JSON.stringify(data))
+      else localStorage.removeItem(PERSIST_OVERVIEW_KEY)
+    }
     if (data) {
       const monthly = aowMonthlyFromFile(data, params.aowPartnerStatus)
       if (monthly) setParams(prev => ({ ...prev, aowMonthly: monthly }))
@@ -38,11 +67,27 @@ function AppInner() {
     if (pensioenoverzicht && newParams.aowPartnerStatus !== params.aowPartnerStatus) {
       const monthly = aowMonthlyFromFile(pensioenoverzicht, newParams.aowPartnerStatus)
       if (monthly) {
-        setParams({ ...newParams, aowMonthly: monthly })
+        const merged = { ...newParams, aowMonthly: monthly }
+        setParams(merged)
+        if (persist) localStorage.setItem(PERSIST_PARAMS_KEY, JSON.stringify(merged))
         return
       }
     }
     setParams(newParams)
+    if (persist) localStorage.setItem(PERSIST_PARAMS_KEY, JSON.stringify(newParams))
+  }
+
+  function handlePersistChange(enabled: boolean) {
+    setPersist(enabled)
+    if (enabled) {
+      localStorage.setItem(PERSIST_FLAG_KEY, 'true')
+      localStorage.setItem(PERSIST_PARAMS_KEY, JSON.stringify(params))
+      if (pensioenoverzicht) localStorage.setItem(PERSIST_OVERVIEW_KEY, JSON.stringify(pensioenoverzicht))
+    } else {
+      localStorage.removeItem(PERSIST_FLAG_KEY)
+      localStorage.removeItem(PERSIST_PARAMS_KEY)
+      localStorage.removeItem(PERSIST_OVERVIEW_KEY)
+    }
   }
   const [showGuide, setShowGuide] = useState(shouldShowGuide)
   const [showAbout, setShowAbout] = useState(false)
@@ -161,6 +206,8 @@ function AppInner() {
               onChange={handleParamsChange}
               pensioenoverzicht={pensioenoverzicht}
               onPensioenoverzicht={handlePensioenoverzicht}
+              persist={persist}
+              onPersistChange={handlePersistChange}
             />
           </div>
 

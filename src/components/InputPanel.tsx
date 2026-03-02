@@ -11,6 +11,8 @@ interface Props {
   onChange: (params: SimParams) => void
   pensioenoverzicht: PensioenoverzichtData | null
   onPensioenoverzicht: (data: PensioenoverzichtData | null) => void
+  persist: boolean
+  onPersistChange: (enabled: boolean) => void
 }
 
 interface SliderInputProps {
@@ -54,7 +56,7 @@ function SliderInput({ label, tooltip, value, min, max, step, format, onChange }
 const euro = (v: number) => `€${Math.round(v).toLocaleString('nl-NL')}`
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 
-export function InputPanel({ params, onChange, pensioenoverzicht, onPensioenoverzicht }: Props) {
+export function InputPanel({ params, onChange, pensioenoverzicht, onPensioenoverzicht, persist, onPersistChange }: Props) {
   const { t, lang } = useTranslation()
   const [mobileOpen, setMobileOpen] = useState(true)
 
@@ -84,22 +86,47 @@ export function InputPanel({ params, onChange, pensioenoverzicht, onPensioenover
     <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm sticky top-0 z-30 lg:sticky lg:top-6 lg:z-10 flex flex-col max-h-[100dvh] lg:max-h-[calc(100vh-3rem)]">
 
       {/* Header — always visible, never scrolls away */}
-      <div className="px-5 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
-        <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+      <div className="px-5 pt-5 pb-3 flex items-center justify-between gap-2 flex-shrink-0">
+        <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 min-w-0 truncate">
           {t.inputs.sectionTitle}
         </h2>
-        <button
-          type="button"
-          onClick={() => setMobileOpen(v => !v)}
-          className="lg:hidden flex items-center gap-1.5 text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-3 py-1.5 rounded-full transition-colors"
-          aria-expanded={mobileOpen}
-        >
-          <span>{mobileOpen ? '▲' : '▼'}</span>
-          <span>{mobileOpen
-            ? (lang === 'nl' ? 'Sluiten' : 'Close')
-            : (lang === 'nl' ? 'Aanpassen' : 'Adjust')
-          }</span>
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Save toggle */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={persist}
+            title={t.inputs.persistToggle}
+            onClick={() => onPersistChange(!persist)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${
+              persist
+                ? 'bg-blue-100 text-blue-700'
+                : 'bg-gray-100 text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <span>💾</span>
+            <span className={`inline-flex h-3.5 w-7 items-center rounded-full transition-colors flex-shrink-0 ${
+              persist ? 'bg-blue-500' : 'bg-gray-300'
+            }`}>
+              <span className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
+                persist ? 'translate-x-[16px]' : 'translate-x-0.5'
+              }`} />
+            </span>
+          </button>
+          {/* Mobile expand/collapse */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(v => !v)}
+            className="lg:hidden flex items-center gap-1.5 text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-3 py-1.5 rounded-full transition-colors"
+            aria-expanded={mobileOpen}
+          >
+            <span>{mobileOpen ? '▲' : '▼'}</span>
+            <span>{mobileOpen
+              ? (lang === 'nl' ? 'Sluiten' : 'Close')
+              : (lang === 'nl' ? 'Aanpassen' : 'Adjust')
+            }</span>
+          </button>
+        </div>
       </div>
 
       {/* Mini summary strip — mobile only, shown when collapsed */}

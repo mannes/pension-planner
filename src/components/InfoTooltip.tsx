@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, CSSProperties } from 'react'
 
 interface Props {
   text: string
@@ -6,8 +6,7 @@ interface Props {
 
 export function InfoTooltip({ text }: Props) {
   const [open, setOpen] = useState(false)
-  const [flipLeft, setFlipLeft] = useState(false)
-  const [flipUp, setFlipUp] = useState(false)
+  const [style, setStyle] = useState<CSSProperties>({})
   const ref = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -21,22 +20,35 @@ export function InfoTooltip({ text }: Props) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
-  function computePosition() {
-    if (!buttonRef.current) return
+  function computeStyle(): CSSProperties {
+    if (!buttonRef.current) return {}
     const rect = buttonRef.current.getBoundingClientRect()
-    setFlipLeft(window.innerWidth - rect.right < 264)
-    setFlipUp(window.innerHeight - rect.bottom < 160)
+    const TOOLTIP_W = 264
+    const TOOLTIP_H = 160
+
+    const s: CSSProperties = { position: 'fixed', width: TOOLTIP_W, zIndex: 9999 }
+
+    // Horizontal: prefer left-aligned to button; flip right if near right edge
+    if (window.innerWidth - rect.left < TOOLTIP_W) {
+      s.right = window.innerWidth - rect.right
+    } else {
+      s.left = rect.left
+    }
+
+    // Vertical: show below button; flip up if near bottom edge
+    if (window.innerHeight - rect.bottom < TOOLTIP_H) {
+      s.bottom = window.innerHeight - rect.top + 4
+    } else {
+      s.top = rect.bottom + 4
+    }
+
+    return s
   }
 
   function handleOpen(isOpen: boolean) {
-    if (isOpen) computePosition()
+    if (isOpen) setStyle(computeStyle())
     setOpen(isOpen)
   }
-
-  const posClass = [
-    flipLeft ? 'right-0' : 'left-6',
-    flipUp   ? 'bottom-6' : 'top-0',
-  ].join(' ')
 
   return (
     <div className="relative inline-flex items-center" ref={ref}>
@@ -52,7 +64,7 @@ export function InfoTooltip({ text }: Props) {
         ?
       </button>
       {open && (
-        <div className={`absolute z-50 ${posClass} w-64 p-3 bg-white border border-blue-200 rounded-lg shadow-lg text-xs text-gray-700 leading-relaxed`}>
+        <div style={style} className="p-3 bg-white border border-blue-200 rounded-lg shadow-lg text-xs text-gray-700 leading-relaxed">
           {text}
         </div>
       )}

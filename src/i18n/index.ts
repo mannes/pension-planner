@@ -30,6 +30,8 @@ export interface Translations {
     franchiseGrowth: string
     inflation: string
     yearsUnit: string
+    persistToggle: string
+    persistNote: string
   }
   jaarruimte: {
     title: string
@@ -223,6 +225,8 @@ const nl: Translations = {
     franchiseGrowth: 'Franchise-stijging p/j',
     inflation: 'Inflatie',
     yearsUnit: 'jaar',
+    persistToggle: 'Instellingen bewaren voor volgend bezoek',
+    persistNote: 'Alleen in jouw browser — nooit gedeeld',
   },
   jaarruimte: {
     title: 'Jaarruimte 3e pijler',
@@ -538,6 +542,8 @@ const en: Translations = {
     franchiseGrowth: 'Threshold growth p/yr',
     inflation: 'Inflation',
     yearsUnit: 'years',
+    persistToggle: 'Save settings for next visit',
+    persistNote: 'Only in your browser — never shared',
   },
   jaarruimte: {
     title: 'Annual space (jaarruimte)',
