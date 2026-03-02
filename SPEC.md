@@ -43,6 +43,32 @@ Displayed as a compact breakdown card in the InputPanel, directly below the extr
 
 Note: the exact formula uses `6.27 × Factor_A` (formal pension accrual). For DC plans this approximates to total contributions; a disclaimer note directs users to the Belastingdienst for their exact jaarruimte.
 
+### Pensioenoverzicht.nl Import (optional)
+
+Users can upload a JSON export from [mijnpensioenoverzicht.nl](https://www.mijnpensioenoverzicht.nl) to include already-accrued pension rights from past and current employers alongside the simulated future contributions. The file is parsed entirely in the browser (FileReader API, no server).
+
+**Parser logic** (`src/logic/parsePensioenoverzicht.ts`):
+- Validates `StatusCode === "000"`
+- Finds the "steady state" period in `Details.OuderdomsPensioenDetails.OuderdomsPensioen` where `Tot.OuderdomsPensioenEvent === "Overlijden"` (age 68 → death, the most complete snapshot)
+- Sums `Opgebouwd` (already accrued) from all `IndicatiefPensioen[]` (DC) and `Pensioen[]` (hard DB) entries — deduped by `PensioenUitvoerder`
+- Extracts `AOW.AOWDetailsOpbouw.TeBereikenAlleenstaand` and `TeBereikenSamenwonend` for AOW auto-fill
+- Returns `null` for invalid files
+
+**On import:**
+- `aowMonthly` slider is **automatically updated** using the user's current `aowPartnerStatus`:
+  - `'single'`: uses `TeBereikenAlleenstaand / 12`
+  - `'partner'`: uses `TeBereikenSamenwonend / 12` (falls back to alleenstaand if absent)
+- Changing the single/partner toggle after import also updates `aowMonthly` from the file (handled in `handleParamsChange` in `App.tsx`)
+- No double-counting: `Opgebouwd` = past accrual; the simulation only projects future contributions
+
+**No double-counting**: `Opgebouwd` values represent what's already locked in from past contributions. The simulation independently models only future contributions. These are additive.
+
+**UX** (upload section at bottom of InputPanel, above Advanced settings):
+- Button triggers hidden `<input type="file" accept=".json">`; local processing note shown in a prominent green badge (🔒)
+- On success: shows summary card with provider list, total accrued/month, AOW projection note for the selected living situation, clear button
+- On failure: inline error message
+- Bilingual via `t.pensioenoverzicht.*`
+
 ### Tax Leverage Effect
 
 - Employee pension contributions are deducted from **bruto (gross) salary before income tax**
@@ -78,7 +104,7 @@ Capital-to-pension conversion uses a **separate conservative annuity rate (1.5%)
 
 Formula: `PMT = capital × r / (1 − (1 + r)^−n)` over 20 years at `r = 1.5%/year`.
 
-This tool only projects future contributions — already-accrued pension rights from past years of service are not included. Use [mijnpensioenoverzicht.nl](https://www.mijnpensioenoverzicht.nl) for your actual prognosis.
+This tool only projects future contributions by default. Users can optionally import a JSON export from mijnpensioenoverzicht.nl to include already-accrued pension rights in the income comparison (see below).
 
 ---
 
@@ -110,6 +136,7 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 | Franchise growth rate   | 1.5%/year     | Approximate CPI-linked growth                                  |
 | Inflation rate          | 2%/year       | Used for real-value toggle                                     |
 | AOW monthly (gross)     | €1,400        | Gross bruto; retirement tax applied on top                     |
+| AOW partner status      | `'single'`    | `'single'` (alleenstaand) or `'partner'` (samenwonend); affects AOW amount; auto-fills from imported file |
 | Return scenarios        | 2% / 5% / 8% | Bad / Normal / Good (accumulation only)                        |
 | Annuity rate            | 1.5%          | Fixed; used for capital → monthly pension                      |
 
@@ -135,7 +162,11 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 - Per pillar (gross bruto amounts):
   - 2nd pillar monthly pension (normal scenario, at 1.5% annuity rate)
   - 3rd pillar monthly pension (normal scenario, if configured)
-  - AOW estimate (gross, adjustable via slider)
+  - **Already-accrued pension** (amber bar, if pensioenoverzicht.nl file imported): `alreadyAccruedAnnual / 12`, real-adjusted if in real mode
+  - **AOW** (gross, adjustable via slider; auto-filled from imported file using the selected `aowPartnerStatus`):
+    - Label: "AOW-uitkering (alleenstaand/samenwonend)" based on selected status
+    - Without imported file: label appends "(schatting)"
+    - With imported file: label is clean (no "schatting"); bar note says "Uit mijnpensioenoverzicht.nl (prognose)"
 - Gross total → minus retirement-age Box 1 tax (19.07%/36.97%/49.50%) → **net monthly pension**
 - Replacement rate = net pension / net reference salary (net/net comparison)
 - Gauge visualization with status: Good (≥70%) / Moderate (50–69%) / Low (<50%)
@@ -178,10 +209,11 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 ### Mobile UX
 
 **InputPanel (settings sidebar):**
-- On mobile: `sticky top-0 z-30`; collapsed by default with an "▼ Aanpassen / Adjust" toggle button in the header
+- Sticky handled directly on the `<aside>` element: `sticky top-0 z-30 lg:sticky lg:top-6 lg:z-10`; max-height `max-h-[100dvh] lg:max-h-[calc(100vh-3rem)]` with `flex flex-col` + internal scroll on content div
+- On mobile: collapsed by default with an "▼ Aanpassen / Adjust" toggle button in the header
 - When collapsed: shows a mini summary strip (salary · employer%/employee% · age) so current values are always visible
 - When expanded: full settings visible, header remains sticky
-- On desktop (`lg+`): always fully visible, no toggle (static positioning handled by parent wrapper)
+- On desktop (`lg+`): sticky at `top-6` with height matching that offset; internal overflow-y-auto ensures scrollability without full-page scroll
 
 **SummaryTable (results card):**
 - On mobile: segmented control (3-button pill) to select Bad / Normal / Good scenario; only the selected card is shown
@@ -213,7 +245,7 @@ Key InfoBoxes:
 - **Mobile**: full-width bottom sheet (`fixed bottom-0 left-0 right-0 rounded-t-2xl`)
 - **Desktop (sm+)**: corner panel (`sm:bottom-6 sm:right-6 sm:w-80 sm:rounded-2xl`)
 - Triggered on first visit (localStorage flag: `pension-planner-guide-seen`)
-- **4 steps**: Welcome → Set your situation → Nominal vs Real → Reading the results
+- **6 steps**: Welcome → Set your situation → Import overview → Nominal vs Real → Reading the results → About & glossary
 - On each step: highlights the relevant UI element via `data-guide-step` attribute + CSS pulse animation (`.guide-highlighted`)
 - Element scrolled into view smoothly on step change; highlights cleaned up on guide close
 - Progress bar + step dots (clickable)
@@ -224,10 +256,12 @@ Key InfoBoxes:
 
 | Step | Highlights element (`data-guide-step`) |
 |------|----------------------------------------|
-| 0 — Welcome         | none            |
-| 1 — Set situation   | `salary`        |
-| 2 — Nominal vs Real | `real-toggle`   |
-| 3 — Results         | `results`       |
+| 0 — Welcome              | none                        |
+| 1 — Set situation        | `salary`                    |
+| 2 — Import overview      | `pensioenoverzicht-upload`  |
+| 3 — Nominal vs Real      | `real-toggle`               |
+| 4 — Results              | `results`                   |
+| 5 — About & glossary     | `about-button`              |
 
 ---
 
@@ -241,7 +275,7 @@ Key InfoBoxes:
 6. **Pension payouts are taxed** as Box 1 income at retirement-age rates (lower bracket 1 because AOW premium no longer applies)
 7. **Annuity conversion uses conservative rekenrente** (1.5%), not the investment return rate
 8. **Pension wealth is not liquid** — no early withdrawal modeled
-9. **Past accrual not modeled** — tool only projects forward from current contributions
+9. **Past accrual optional** — tool projects forward from current contributions by default; users can import a mijnpensioenoverzicht.nl JSON export to add already-accrued rights to the income comparison
 
 ---
 
@@ -316,7 +350,8 @@ pension-planner/
     ├── logic/
     │   ├── tax.ts                # Box 1 tax (working age + retirement age), marginal rate
     │   ├── pension.ts            # Pensioengrondslag, contribution breakdown
-    │   ├── simulation.ts        # Career engine (2nd + 3rd pillar), toReal, ANNUITY_RATE, estimateMonthlyPension
+    │   ├── simulation.ts         # Career engine (2nd + 3rd pillar), toReal, ANNUITY_RATE, estimateMonthlyPension
+    │   ├── parsePensioenoverzicht.ts  # Parses mijnpensioenoverzicht.nl JSON export
     │   └── __tests__/
     │       ├── tax.test.ts
     │       ├── pension.test.ts
@@ -325,8 +360,9 @@ pension-planner/
         ├── InfoTooltip.tsx       # (?) hover popover
         ├── InfoBox.tsx           # Collapsible deep-dive explanation panel
         ├── AISlopWarning.tsx     # One-time dismissable amber disclaimer
-        ├── FirstTimeGuide.tsx    # 4-step guide; bottom sheet on mobile, corner panel on desktop
-        ├── InputPanel.tsx        # Sliders + extra savings input (data-guide-step attrs)
+        ├── FirstTimeGuide.tsx    # 6-step guide; bottom sheet on mobile, corner panel on desktop
+        ├── InputPanel.tsx        # Sliders + extra savings + PensioenoverzichtUpload at bottom
+        ├── PensioenoverzichtUpload.tsx  # File upload UI for pensioenoverzicht.nl JSON
         ├── SummaryTable.tsx      # Results at top (2nd + 3rd pillar, 3 scenarios)
         ├── TaxLeveragePanel.tsx  # Year-1 waterfall + leverage ratio
         ├── IncomeComparisonPanel.tsx  # Gross→net pension, retirement tax, replacement rate

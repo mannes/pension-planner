@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { DEFAULT_PARAMS, SimParams } from './types'
+import { DEFAULT_PARAMS, SimParams, PensioenoverzichtData } from './types'
 import { runSimulation } from './logic/simulation'
 import { LanguageProvider, useTranslation } from './context/LanguageContext'
 import { InputPanel } from './components/InputPanel'
@@ -16,6 +16,34 @@ function AppInner() {
   const { t, lang, setLang } = useTranslation()
   const [params, setParams] = useState<SimParams>(DEFAULT_PARAMS)
   const [realMode, setRealMode] = useState(false)
+  const [pensioenoverzicht, setPensioenoverzicht] = useState<PensioenoverzichtData | null>(null)
+
+  function aowMonthlyFromFile(data: PensioenoverzichtData, status: 'single' | 'partner'): number | null {
+    const annual = status === 'partner'
+      ? (data.aowTeBereikenSamenwonend ?? data.aowTeBereikenAlleenstaand)
+      : data.aowTeBereikenAlleenstaand
+    return annual ? Math.round(annual / 12) : null
+  }
+
+  function handlePensioenoverzicht(data: PensioenoverzichtData | null) {
+    setPensioenoverzicht(data)
+    if (data) {
+      const monthly = aowMonthlyFromFile(data, params.aowPartnerStatus)
+      if (monthly) setParams(prev => ({ ...prev, aowMonthly: monthly }))
+    }
+  }
+
+  function handleParamsChange(newParams: SimParams) {
+    // When partner status changes and a file is loaded, sync aowMonthly from the file
+    if (pensioenoverzicht && newParams.aowPartnerStatus !== params.aowPartnerStatus) {
+      const monthly = aowMonthlyFromFile(pensioenoverzicht, newParams.aowPartnerStatus)
+      if (monthly) {
+        setParams({ ...newParams, aowMonthly: monthly })
+        return
+      }
+    }
+    setParams(newParams)
+  }
   const [showGuide, setShowGuide] = useState(shouldShowGuide)
   const [showAbout, setShowAbout] = useState(false)
 
@@ -73,6 +101,7 @@ function AppInner() {
               {/* About button */}
               <button
                 type="button"
+                data-guide-step="about-button"
                 onClick={() => setShowAbout(true)}
                 className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-400 px-3 py-1.5 rounded-full transition-colors"
               >
@@ -127,9 +156,12 @@ function AppInner() {
 
           {/* Left sidebar: inputs */}
           <div className="lg:w-72 xl:w-80 flex-shrink-0">
-            <div className="lg:sticky lg:top-6">
-              <InputPanel params={params} onChange={setParams} />
-            </div>
+            <InputPanel
+              params={params}
+              onChange={handleParamsChange}
+              pensioenoverzicht={pensioenoverzicht}
+              onPensioenoverzicht={handlePensioenoverzicht}
+            />
           </div>
 
           {/* Right: result panels — summary first (most prominent) */}
@@ -147,6 +179,7 @@ function AppInner() {
               results={results}
               params={params}
               realMode={realMode}
+              pensioenoverzicht={pensioenoverzicht}
             />
 
             {/* 3. Tax leverage breakdown */}

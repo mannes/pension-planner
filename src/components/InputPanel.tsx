@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { SimParams, AOW_AGE } from '../types'
+import { SimParams, AOW_AGE, PensioenoverzichtData } from '../types'
 import { useTranslation } from '../context/LanguageContext'
 import { InfoTooltip } from './InfoTooltip'
 import { InfoBox } from './InfoBox'
 import { calcPensioengrondslag, calcJaarruimte } from '../logic/pension'
+import { PensioenoverzichtUpload } from './PensioenoverzichtUpload'
 
 interface Props {
   params: SimParams
   onChange: (params: SimParams) => void
+  pensioenoverzicht: PensioenoverzichtData | null
+  onPensioenoverzicht: (data: PensioenoverzichtData | null) => void
 }
 
 interface SliderInputProps {
@@ -51,7 +54,7 @@ function SliderInput({ label, tooltip, value, min, max, step, format, onChange }
 const euro = (v: number) => `€${Math.round(v).toLocaleString('nl-NL')}`
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 
-export function InputPanel({ params, onChange }: Props) {
+export function InputPanel({ params, onChange, pensioenoverzicht, onPensioenoverzicht }: Props) {
   const { t, lang } = useTranslation()
   const [mobileOpen, setMobileOpen] = useState(true)
 
@@ -78,10 +81,10 @@ export function InputPanel({ params, onChange }: Props) {
   const overLimit = remainingJaarruimte < 0
 
   return (
-    <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm sticky top-0 z-30 lg:static lg:z-auto">
+    <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm sticky top-0 z-30 lg:sticky lg:top-6 lg:z-10 flex flex-col max-h-[100dvh] lg:max-h-[calc(100vh-3rem)]">
 
-      {/* Header — always visible */}
-      <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+      {/* Header — always visible, never scrolls away */}
+      <div className="px-5 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
         <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
           {t.inputs.sectionTitle}
         </h2>
@@ -101,7 +104,7 @@ export function InputPanel({ params, onChange }: Props) {
 
       {/* Mini summary strip — mobile only, shown when collapsed */}
       {!mobileOpen && (
-        <div className="lg:hidden px-5 pb-3 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-400">
+        <div className="lg:hidden px-5 pb-3 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-400 flex-shrink-0">
           <span className="font-medium text-gray-600">{euro(params.startingSalary)}</span>
           <span>·</span>
           <span>{pct(params.employerPct)} / {pct(params.employeePct)}</span>
@@ -110,8 +113,8 @@ export function InputPanel({ params, onChange }: Props) {
         </div>
       )}
 
-      {/* Main content — hidden on mobile when collapsed, always visible on desktop */}
-      <div className={`px-5 pb-5 ${mobileOpen ? '' : 'hidden'} lg:block`}>
+      {/* Main content — scrollable, hidden on mobile when collapsed */}
+      <div className={`px-5 pb-5 min-h-0 ${mobileOpen ? 'flex-1 overflow-y-auto' : 'hidden'} lg:flex-1 lg:overflow-y-auto lg:block`}>
 
         <div data-guide-step="salary">
           <SliderInput
@@ -121,14 +124,6 @@ export function InputPanel({ params, onChange }: Props) {
             min={20_000} max={150_000} step={500}
             format={euro}
             onChange={v => set('startingSalary', v)}
-          />
-          <SliderInput
-            label={t.inputs.salaryGrowth}
-            tooltip={t.tooltips.salaryGrowth}
-            value={params.salaryGrowthRate}
-            min={0} max={0.08} step={0.005}
-            format={pct}
-            onChange={v => set('salaryGrowthRate', v)}
           />
           <SliderInput
             label={t.inputs.startingAge}
@@ -141,6 +136,29 @@ export function InputPanel({ params, onChange }: Props) {
             }}
             onChange={setAge}
           />
+
+          {/* Single / partner toggle */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              {t.inputs.aowStatus}
+            </label>
+            <div className="flex items-center bg-gray-100 rounded-full p-0.5 w-fit">
+              {(['single', 'partner'] as const).map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => set('aowPartnerStatus', s)}
+                  className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
+                    params.aowPartnerStatus === s
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {s === 'single' ? t.inputs.aowSingle : t.inputs.aowPartner}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="border-t border-gray-100 my-4" />
@@ -233,12 +251,29 @@ export function InputPanel({ params, onChange }: Props) {
         <InfoBox title={t.infoBoxes.extraSavings.title} content={t.infoBoxes.extraSavings.content} />
 
         <div className="border-t border-gray-100 my-4" />
+        <div data-guide-step="pensioenoverzicht-upload">
+          <PensioenoverzichtUpload
+            data={pensioenoverzicht}
+            onData={onPensioenoverzicht}
+            aowPartnerStatus={params.aowPartnerStatus}
+          />
+        </div>
+
+        <div className="border-t border-gray-100 my-4" />
         <details className="group">
           <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer list-none flex items-center justify-between mb-3 hover:text-gray-700">
             <span>{t.inputs.advancedTitle}</span>
             <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
           </summary>
 
+          <SliderInput
+            label={t.inputs.salaryGrowth}
+            tooltip={t.tooltips.salaryGrowth}
+            value={params.salaryGrowthRate}
+            min={0} max={0.08} step={0.005}
+            format={pct}
+            onChange={v => set('salaryGrowthRate', v)}
+          />
           <SliderInput
             label={t.inputs.franchise}
             tooltip={t.tooltips.franchise}

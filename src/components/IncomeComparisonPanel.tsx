@@ -1,4 +1,4 @@
-import { YearlyResult, SimParams } from '../types'
+import { YearlyResult, SimParams, PensioenoverzichtData } from '../types'
 import { calculateTaxWithPensionDeduction, calculateRetirementTax } from '../logic/tax'
 import { estimateMonthlyPension, toReal, ANNUITY_RATE } from '../logic/simulation'
 import { useTranslation } from '../context/LanguageContext'
@@ -8,6 +8,7 @@ interface Props {
   results: YearlyResult[]
   params: SimParams
   realMode: boolean
+  pensioenoverzicht?: PensioenoverzichtData | null
 }
 
 const euro = (v: number) =>
@@ -40,7 +41,7 @@ function Bar({ label, value, total, color, note }: BarProps) {
   )
 }
 
-export function IncomeComparisonPanel({ results, params, realMode }: Props) {
+export function IncomeComparisonPanel({ results, params, realMode, pensioenoverzicht }: Props) {
   const { t } = useTranslation()
 
   if (results.length === 0) return null
@@ -72,14 +73,26 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
   const monthly3rd = estimateMonthlyPension(cap3Normal, ANNUITY_RATE)
   const monthlyAow = params.aowMonthly
 
-  // Gross pension total — all three pillars are taxed as Box 1 income at retirement
-  const grossTotalMonthly = monthly2nd + monthly3rd + monthlyAow
+  // Already-accrued pension from pensioenoverzicht.nl (annual → monthly, real-adjusted if needed)
+  const monthlyExisting = pensioenoverzicht
+    ? realMode
+      ? toReal(pensioenoverzicht.alreadyAccruedAnnual / 12, years, params.inflationRate)
+      : pensioenoverzicht.alreadyAccruedAnnual / 12
+    : 0
+
+  // Gross pension total — all three pillars + existing accrual are taxed as Box 1 income at retirement
+  const grossTotalMonthly = monthly2nd + monthly3rd + monthlyAow + monthlyExisting
 
   // Tax at pension-age rates (no AOW premium, bracket 1 ≈ 19.07% instead of 36.97%)
   const monthlyPensionTax = calculateRetirementTax(grossTotalMonthly * 12) / 12
 
   // Net pension used for replacement rate — compare net/net
   const netTotalMonthly = grossTotalMonthly - monthlyPensionTax
+
+  const fromFile = !!pensioenoverzicht
+  const isPartner = params.aowPartnerStatus === 'partner'
+  const aowBarLabel = `${isPartner ? t.incomeComparison.aowPartner : t.incomeComparison.aowSingle}${!fromFile ? ` ${t.incomeComparison.aowEstimateSuffix}` : ''}`
+  const aowBarNote = fromFile ? t.incomeComparison.aowNoteFromFile : t.incomeComparison.aowNote
 
   const replacementRate = currentNetMonthly > 0 ? netTotalMonthly / currentNetMonthly : 0
   const replacementPct = Math.round(replacementRate * 100)
@@ -163,8 +176,17 @@ export function IncomeComparisonPanel({ results, params, realMode }: Props) {
           ) : (
             <div className="text-xs text-gray-400 italic">{t.incomeComparison.pillar3None}</div>
           )}
-          <Bar label={`${t.incomeComparison.aow}`} value={monthlyAow} total={currentNetMonthly} color="#10b981"
-            note={t.incomeComparison.aowNote} />
+          {pensioenoverzicht && monthlyExisting > 0 && (
+            <Bar
+              label={`${t.pensioenoverzicht.pillarExisting} ${t.incomeComparison.grossNote}`}
+              value={monthlyExisting}
+              total={currentNetMonthly}
+              color="#f59e0b"
+              note={t.pensioenoverzicht.pillarExistingNote}
+            />
+          )}
+          <Bar label={aowBarLabel} value={monthlyAow} total={currentNetMonthly} color="#10b981"
+            note={aowBarNote} />
 
           <div className="border-t border-gray-200 pt-2 mt-2 space-y-1">
             <div className="flex justify-between text-xs text-gray-500">

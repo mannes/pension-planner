@@ -5,10 +5,12 @@ const STORAGE_KEY = 'pension-planner-guide-seen'
 
 // Maps guide step index → data-guide-step attribute value (null = no highlight)
 const STEP_TARGETS: Array<string | null> = [
-  null,           // 0: welcome
-  'salary',       // 1: set your situation
-  'real-toggle',  // 2: nominal vs real
-  'results',      // 3: reading the results
+  null,                        // 0: welcome
+  'salary',                    // 1: set your situation
+  'pensioenoverzicht-upload',  // 2: import your overview
+  'real-toggle',               // 3: nominal vs real
+  'results',                   // 4: reading the results
+  'about-button',              // 5: about & glossary
 ]
 
 interface Props {
@@ -38,8 +40,10 @@ export function FirstTimeGuide({ onClose }: Props) {
   const steps = [
     { ...t.guide.welcome, icon: '🏦' },
     { ...t.guide.step1,   icon: '⚙️' },
-    { ...t.guide.step2,   icon: '📊' },
-    { ...t.guide.step3,   icon: '💡' },
+    { ...t.guide.step2,   icon: '📄' },
+    { ...t.guide.step3,   icon: '📊' },
+    { ...t.guide.step4,   icon: '💡' },
+    { ...t.guide.step5,   icon: 'ℹ️' },
   ]
 
   const totalSteps = steps.length

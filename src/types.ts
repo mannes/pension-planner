@@ -12,6 +12,7 @@ export interface SimParams {
   inflationRate: number         // For real-value conversion
   years: number                 // Simulation period (derived: AOW_AGE − startingAge)
   aowMonthly: number            // Estimated AOW monthly payout (for income comparison)
+  aowPartnerStatus: 'single' | 'partner'  // Affects AOW amount (alleenstaand vs samenwonend)
 }
 
 export interface YearlyResult {
@@ -60,6 +61,24 @@ export const DEFAULT_PARAMS: SimParams = {
   inflationRate: 0.02,
   years: 35,
   aowMonthly: 1_400,
+  aowPartnerStatus: 'single',
+}
+
+// --- Pensioenoverzicht.nl import ---
+
+export interface PensioenoverzichtProvider {
+  name: string
+  opgebouwdAnnual: number    // already accrued, annual gross (€)
+  teBereikenAnnual: number   // projected at full retirement age (€)
+  isIndicatief: boolean      // true = DC (indicatief), false = hard DB pension
+}
+
+export interface PensioenoverzichtData {
+  providers: PensioenoverzichtProvider[]
+  alreadyAccruedAnnual: number          // sum of all Opgebouwd (both DC + DB)
+  aowTeBereikenAlleenstaand: number | null
+  aowTeBereikenSamenwonend: number | null
+  standPer: string                       // report timestamp from TijdstipAanmakenBericht
 }
 
 // Dutch Box 1 income tax brackets (2024/2025 rates, below AOW age)

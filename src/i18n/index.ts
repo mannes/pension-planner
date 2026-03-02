@@ -22,6 +22,9 @@ export interface Translations {
     extraSavings: string
     extraSavingsNote: string
     startingAge: string
+    aowStatus: string
+    aowSingle: string
+    aowPartner: string
     advancedTitle: string
     franchise: string
     franchiseGrowth: string
@@ -118,8 +121,11 @@ export interface Translations {
     pillar2: string
     pillar3: string
     pillar3None: string
-    aow: string
-    aowNote: string
+    aowSingle: string         // label when single (no "schatting" suffix needed — that comes from aowEstimateSuffix)
+    aowPartner: string        // label when with partner
+    aowEstimateSuffix: string // "(schatting)" / "(estimate)" — appended when not from file
+    aowNote: string           // tooltip/note for the AOW slider in advanced settings
+    aowNoteFromFile: string   // bar note when value comes from the imported file
     grossNote: string         // "(bruto)" shown next to each pillar bar
     pensionTaxLabel: string   // tax deduction row label
     pensionTaxNote: string    // short explanation of reduced retirement rate
@@ -149,6 +155,8 @@ export interface Translations {
     step1: { title: string; body: string }
     step2: { title: string; body: string }
     step3: { title: string; body: string }
+    step4: { title: string; body: string }
+    step5: { title: string; body: string }
     prevBtn: string
     nextBtn: string
     finishBtn: string
@@ -167,6 +175,20 @@ export interface Translations {
     pillars: InfoBoxContent
     extraSavings: InfoBoxContent
     retirementCosts: InfoBoxContent
+  }
+  pensioenoverzicht: {
+    sectionTitle: string
+    uploadButton: string
+    uploadNote: string
+    standPer: string
+    totalAccrued: string
+    perMonth: string
+    aowProjectionSingle: string
+    aowProjectionPartner: string
+    clearButton: string
+    errorInvalid: string
+    pillarExisting: string
+    pillarExistingNote: string
   }
   footer: string
 }
@@ -193,6 +215,9 @@ const nl: Translations = {
     extraSavings: 'Extra eigen spaarbedrag/mnd',
     extraSavingsNote: 'Via lijfrente of banksparen (3e pijler)',
     startingAge: 'Huidige leeftijd',
+    aowStatus: 'Leefsituatie (AOW)',
+    aowSingle: 'Alleenstaand',
+    aowPartner: 'Met partner',
     advancedTitle: 'Geavanceerde instellingen',
     franchise: 'AOW-franchise',
     franchiseGrowth: 'Franchise-stijging p/j',
@@ -289,7 +314,10 @@ const nl: Translations = {
     pillar2: '2e pijler (werkgeverspensioen)',
     pillar3: '3e pijler (eigen spaarpot)',
     pillar3None: 'Geen extra spaarbedrag ingesteld',
-    aow: 'AOW-uitkering (bruto schatting)',
+    aowSingle: 'AOW-uitkering (alleenstaand)',
+    aowPartner: 'AOW-uitkering (samenwonend)',
+    aowEstimateSuffix: '(schatting)',
+    aowNoteFromFile: 'Uit mijnpensioenoverzicht.nl (prognose)',
     aowNote: '~€1.400/mnd alleenstaand bruto (2024). Stel in via schuifregelaar.',
     grossNote: '(bruto)',
     pensionTaxLabel: 'Belasting (AOW-leeftijdstarief)',
@@ -325,12 +353,20 @@ const nl: Translations = {
       body: 'Pas je brutosalaris, leeftijd en pensioenpremies aan via de schuifregelaars. De werkgever- en werknemersbijdrage vind je in je arbeidscontract of cao. Weet je het niet? Check MijnPensioenoverzicht.nl of vraag het aan HR.',
     },
     step2: {
-      title: '2. Nominaal vs. Reëel',
-      body: 'Met de schakelaar rechtsboven wissel je tussen twee weergaven. Nominaal toont toekomstige eurobedragen zoals ze zijn — maar inflatie holt koopkracht uit. Reëel corrigeert voor inflatie en toont wat je pensioen echt waard is in euro\'s van vandaag. Over 30 jaar maakt dit een enorm verschil!',
+      title: '2. Importeer je pensioenoverzicht',
+      body: 'Heb je al pensioen opgebouwd bij vorige werkgevers? Ga naar mijnpensioenoverzicht.nl, download je JSON-export en laad hem in via de knop onderin de linkerkant. Je al opgebouwde pensioen wordt automatisch meegenomen in de berekening.',
     },
     step3: {
-      title: '3. Lees de resultaten',
+      title: '3. Nominaal vs. Reëel',
+      body: 'Met de schakelaar rechtsboven wissel je tussen twee weergaven. Nominaal toont toekomstige eurobedragen zoals ze zijn — maar inflatie holt koopkracht uit. Reëel corrigeert voor inflatie en toont wat je pensioen echt waard is in euro\'s van vandaag. Over 30 jaar maakt dit een enorm verschil!',
+    },
+    step4: {
+      title: '4. Lees de resultaten',
       body: 'Bovenaan zie je je geschatte eindkapitaal en maandpensioen in drie scenario\'s (2%, 5%, 8% rendement). De "Belastingvoordeel"-sectie laat zien wat het je echt kost na belastingteruggave. Hoe je dat leest: je netto kosten zijn vaak veel lager dan je denkt!',
+    },
+    step5: {
+      title: '5. Over & woordenlijst',
+      body: 'Pensioenjargon zoals "pensioengrondslag", "franchise" of "jaarruimte" verwarrend? Klik rechtsboven op de knop "Over" — daar vind je uitleg van alle begrippen die in deze tool worden gebruikt.',
     },
     prevBtn: '← Vorige',
     nextBtn: 'Volgende →',
@@ -451,6 +487,20 @@ Meer vrije tijd betekent ook meer gelegenheid om geld uit te geven — aan reize
 > De vuistregel van 70–80% is een gemiddelde. Jouw ideale vervangingsratio hangt af van je eigen levensstijl en verwachte uitgaven.`,
     },
   },
+  pensioenoverzicht: {
+    sectionTitle: '📄 Pensioenoverzicht',
+    uploadButton: 'Laad pensioenoverzicht.nl export',
+    uploadNote: 'JSON-export van mijnpensioenoverzicht.nl — verwerkt lokaal in je browser',
+    standPer: 'Stand per',
+    totalAccrued: 'Totaal opgebouwd',
+    perMonth: '/mnd',
+    aowProjectionSingle: 'AOW-prognose (alleenstaand) — ingesteld als AOW-uitkering',
+    aowProjectionPartner: 'AOW-prognose (samenwonend) — ingesteld als AOW-uitkering',
+    clearButton: 'Verwijder',
+    errorInvalid: 'Ongeldig bestand. Upload een JSON-export van mijnpensioenoverzicht.nl.',
+    pillarExisting: 'Reeds opgebouwd pensioen',
+    pillarExistingNote: 'uit mijnpensioenoverzicht.nl (opgebouwd, bruto)',
+  },
   infoBox: {
     readMore: 'Lees meer',
     close: 'Sluiten',
@@ -480,6 +530,9 @@ const en: Translations = {
     extraSavings: 'Extra personal savings/month',
     extraSavingsNote: 'Via annuity or bank savings (3rd pillar)',
     startingAge: 'Current age',
+    aowStatus: 'Living situation (AOW)',
+    aowSingle: 'Single',
+    aowPartner: 'With partner',
     advancedTitle: 'Advanced settings',
     franchise: 'AOW threshold (franchise)',
     franchiseGrowth: 'Threshold growth p/yr',
@@ -576,7 +629,10 @@ const en: Translations = {
     pillar2: '2nd pillar (employer pension)',
     pillar3: '3rd pillar (personal savings)',
     pillar3None: 'No extra savings configured',
-    aow: 'AOW state pension (gross estimate)',
+    aowSingle: 'AOW state pension (single)',
+    aowPartner: 'AOW state pension (with partner)',
+    aowEstimateSuffix: '(estimate)',
+    aowNoteFromFile: 'From mijnpensioenoverzicht.nl (projection)',
     aowNote: '~€1,400/month single gross (2024). Adjust via slider if your situation differs.',
     grossNote: '(gross)',
     pensionTaxLabel: 'Tax (retirement-age rate)',
@@ -612,12 +668,20 @@ const en: Translations = {
       body: 'Adjust your gross salary, age and pension contribution percentages using the sliders. You\'ll find employer/employee rates in your employment contract or cao. Not sure? Check MijnPensioenoverzicht.nl or ask HR.',
     },
     step2: {
-      title: '2. Nominal vs. Real',
-      body: 'The toggle in the top-right switches between two views. Nominal shows future euro amounts as-is — but inflation erodes purchasing power. Real adjusts for inflation and shows what your pension is worth in today\'s euros. Over 30 years this makes an enormous difference!',
+      title: '2. Import your pension overview',
+      body: 'Already accrued pension from previous employers? Go to mijnpensioenoverzicht.nl, download your JSON export, and load it via the button at the bottom of the left panel. Your already-accrued pension is automatically included in the calculation.',
     },
     step3: {
-      title: '3. Reading the results',
+      title: '3. Nominal vs. Real',
+      body: 'The toggle in the top-right switches between two views. Nominal shows future euro amounts as-is — but inflation erodes purchasing power. Real adjusts for inflation and shows what your pension is worth in today\'s euros. Over 30 years this makes an enormous difference!',
+    },
+    step4: {
+      title: '4. Reading the results',
       body: 'At the top you see your estimated final capital and monthly pension across three scenarios (2%, 5%, 8% return). The "Tax benefit" section shows what it actually costs you after tax relief. Spoiler: your net cost is usually much lower than you think!',
+    },
+    step5: {
+      title: '5. About & glossary',
+      body: 'Confused by terms like "pensioengrondslag", "franchise" or "jaarruimte"? Click the "About" button in the top-right — it explains all the pension jargon used in this tool.',
     },
     prevBtn: '← Back',
     nextBtn: 'Next →',
@@ -737,6 +801,20 @@ More free time also means more opportunity to spend — on travel, hobbies, or g
 
 > The 70–80% rule of thumb is an average. Your ideal replacement rate depends on your own lifestyle and expected spending.`,
     },
+  },
+  pensioenoverzicht: {
+    sectionTitle: '📄 Pension overview',
+    uploadButton: 'Load pensioenoverzicht.nl export',
+    uploadNote: 'JSON export from mijnpensioenoverzicht.nl — processed locally in your browser',
+    standPer: 'As of',
+    totalAccrued: 'Total accrued',
+    perMonth: '/month',
+    aowProjectionSingle: 'AOW projection (single) — applied as AOW payout',
+    aowProjectionPartner: 'AOW projection (with partner) — applied as AOW payout',
+    clearButton: 'Remove',
+    errorInvalid: 'Invalid file. Please upload a JSON export from mijnpensioenoverzicht.nl.',
+    pillarExisting: 'Already accrued pension',
+    pillarExistingNote: 'from mijnpensioenoverzicht.nl (accrued, gross)',
   },
   infoBox: {
     readMore: 'Read more',
