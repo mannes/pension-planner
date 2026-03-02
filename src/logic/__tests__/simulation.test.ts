@@ -16,6 +16,7 @@ const PARAMS: SimParams = {
   inflationRate: 0.02,
   years: 10,
   aowMonthly: 1_400,
+  aowPartnerStatus: 'single',
 }
 
 // ─── runSimulation ────────────────────────────────────────────────────────────
