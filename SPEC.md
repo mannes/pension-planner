@@ -241,6 +241,16 @@ Key InfoBoxes:
 - One-time, dismisses permanently via localStorage (`pension-planner-disclaimer-seen`)
 - Warns: tool is AI-generated ("Claude Slop"), for indication only, verify with pension fund / advisor
 
+### LocalStorage Persistence (opt-in)
+- 💾 toggle in the InputPanel header, always visible
+- **Off by default** — no data is persisted unless the user explicitly enables it
+- When enabled (`pension-planner-persist = 'true'`):
+  - `SimParams` saved to `pension-planner-params` on every slider/input change
+  - `PensioenoverzichtData` saved to `pension-planner-overview` when a file is loaded or cleared
+  - On page load: params merged with `DEFAULT_PARAMS` (schema-safe for future fields); overview parsed and restored
+- When disabled: all three keys removed from localStorage immediately
+- Always browser-local; nothing is sent to any server
+
 ### First-Time Interactive Guide
 - **Mobile**: full-width bottom sheet (`fixed bottom-0 left-0 right-0 rounded-t-2xl`)
 - **Desktop (sm+)**: corner panel (`sm:bottom-6 sm:right-6 sm:w-80 sm:rounded-2xl`)
@@ -275,7 +285,7 @@ Key InfoBoxes:
 6. **Pension payouts are taxed** as Box 1 income at retirement-age rates (lower bracket 1 because AOW premium no longer applies)
 7. **Annuity conversion uses conservative rekenrente** (1.5%), not the investment return rate
 8. **Pension wealth is not liquid** — no early withdrawal modeled
-9. **Past accrual optional** — tool projects forward from current contributions by default; users can import a mijnpensioenoverzicht.nl JSON export to add already-accrued rights to the income comparison
+9. **Past accrual optional** — tool projects forward from current contributions only; users can import a mijnpensioenoverzicht.nl JSON export to add already-accrued rights to the income comparison; no double-counting (`Opgebouwd` = past, simulation = future)
 
 ---
 

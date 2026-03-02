@@ -64,11 +64,25 @@ function NlContent() {
             hoeveel belastingvoordeel levert dat op?
           </li>
           <li>Wat is je pensioen echt waard na inflatie?</li>
+          <li>
+            Heb je al pensioen opgebouwd bij vorige werkgevers? Importeer je
+            JSON-export van{" "}
+            <a
+              href="https://www.mijnpensioenoverzicht.nl"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              mijnpensioenoverzicht.nl
+            </a>{" "}
+            en zie je complete plaatje — inclusief opgebouwde rechten en
+            AOW-prognose.
+          </li>
         </ul>
         <p className="text-gray-500 italic mt-2">
-          Het doel is inzicht, niet precisie. Deze tool rekent alleen vooruit op
-          basis van je huidige situatie. Al opgebouwde rechten uit eerdere jaren
-          zijn niet inbegrepen. Raadpleeg{" "}
+          Het doel is inzicht, niet precisie. Deze tool rekent vooruit op basis
+          van je huidige situatie; opgebouwde rechten kun je optioneel
+          importeren. Raadpleeg{" "}
           <a
             href="https://www.mijnpensioenoverzicht.nl"
             target="_blank"
@@ -180,8 +194,10 @@ function NlContent() {
       <Section title="Wat deze tool NIET doet">
         <ul className="list-disc pl-5 space-y-1 text-gray-600">
           <li>
-            Al opgebouwde pensioenaanspraken uit voorgaande dienstjaren worden
-            niet meegenomen
+            Toekomstige opbouw bij andere werkgevers of in een andere regeling
+            wordt niet gesimuleerd — alleen je huidige situatie wordt
+            doorgerekend. Gebruik de import-knop om al opgebouwde rechten uit
+            voorgaande dienstjaren mee te nemen.
           </li>
           <li>
             Uitkeringsovereenkomsten (DB-regelingen) worden niet gemodelleerd —
@@ -204,8 +220,11 @@ function NlContent() {
           Deze tool draait volledig in je browser. Er is geen server, geen
           database en geen analysedienst gekoppeld. De cijfers die je invult
           worden nergens naartoe verstuurd en worden niet opgeslagen buiten je
-          eigen apparaat. Alleen je taalvoorkeur en of je de introductie al
-          hebt gezien worden lokaal bewaard via localStorage.
+          eigen apparaat. Je taalvoorkeur en of je de introductie al hebt gezien
+          worden altijd lokaal bewaard. Via het opslagsymbool (💾) in de hoek
+          van het invulveld kun je er ook voor kiezen om je instellingen en
+          geïmporteerde gegevens te bewaren voor een volgend bezoek — uitsluitend
+          in je eigen browser.
         </p>
         <p className="text-gray-500 italic">
           Wees desondanks altijd kritisch bij het invullen van persoonlijke of
@@ -247,11 +266,25 @@ function EnContent() {
             tax benefit does that generate?
           </li>
           <li>What is your pension actually worth after inflation?</li>
+          <li>
+            Already accrued pension at previous employers? Import your JSON
+            export from{" "}
+            <a
+              href="https://www.mijnpensioenoverzicht.nl"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              mijnpensioenoverzicht.nl
+            </a>{" "}
+            and see your complete retirement picture — including past accruals
+            and your AOW projection.
+          </li>
         </ul>
         <p className="text-gray-500 italic mt-2">
-          The goal is awareness, not precision. This tool only projects forward
-          from your current situation. Pension rights already accrued from past
-          years of service are not included. Use{" "}
+          The goal is awareness, not precision. This tool projects forward from
+          your current situation; already-accrued rights can be added
+          optionally via import. Use{" "}
           <a
             href="https://www.mijnpensioenoverzicht.nl"
             target="_blank"
@@ -358,8 +391,9 @@ function EnContent() {
       <Section title="What this tool does NOT do">
         <ul className="list-disc pl-5 space-y-1 text-gray-600">
           <li>
-            Pension rights already accrued from past years of service are not
-            included
+            Future accrual at other employers or under a different scheme is not
+            simulated — only your current situation is projected forward. Use the
+            import button to include pension rights already accrued in past jobs.
           </li>
           <li>
             Defined benefit (DB) schemes are not modelled — only defined
@@ -376,8 +410,10 @@ function EnContent() {
           This tool runs entirely in your browser. There is no server, no
           database, and no analytics service attached. The numbers you enter
           are never sent anywhere and are not stored outside your own device.
-          Only your language preference and whether you've seen the intro are
-          saved locally via localStorage.
+          Your language preference and whether you've seen the intro are always
+          saved locally. You can also choose to save your settings and any
+          imported overview data for your next visit using the save toggle (💾)
+          in the input panel header — stored only in your own browser.
         </p>
         <p className="text-gray-500 italic">
           That said, always be critical about entering personal or financial

@@ -16,6 +16,7 @@ This tool makes the mechanics visible:
 - What does your accumulated pot convert to as monthly income at 67?
 - How does 2% vs 8% annual return change the outcome over 35 years?
 - Is there room to top up via a 3rd-pillar product (lijfrente/banksparen), and how much?
+- Already accrued rights at past employers? Import a JSON export from mijnpensioenoverzicht.nl to see the full picture.
 
 ---
 
@@ -24,17 +25,16 @@ This tool makes the mechanics visible:
 - **2nd pillar** (werkgeverspensioen): employer + employee contributions on the pensioengrondslag (gross salary minus AOW-franchise), compounding at 2% / 5% / 8% scenarios
 - **3rd pillar** (lijfrente/banksparen): optional extra monthly savings, tax-deductible within jaarruimte
 - **Dutch Box 1 income tax** (2024/2025 rates): marginal rate applied to contributions and savings; lower retirement-age rates applied to pension payouts
-- **AOW** state pension: included in the income replacement calculation
+- **AOW** state pension: alleenstaand or samenwonend amount; included in the income replacement calculation
 - **Jaarruimte**: live calculation of the maximum tax-deductible 3rd-pillar contribution space (post-WTP formula, from 2024)
 - **Replacement rate**: net pension income vs net working salary — the key metric for retirement adequacy (target: 70–80%)
+- **Already-accrued rights** (optional): upload a JSON export from mijnpensioenoverzicht.nl to include past accruals and real AOW projections in the income comparison — processed entirely in-browser, never sent anywhere
 
 ### What it does NOT model
-- Pension rights already accrued from past years of service (only future contributions)
+- Future accrual at other employers or under a different scheme (only your current situation is projected forward; past accrual can be imported)
 - Defined-benefit (DB/uitkeringsovereenkomst) schemes — only DC (beschikbare premie)
 - Investment risk / sequence-of-returns risk
-- Partner AOW or partner pension products
-
-Use [mijnpensioenoverzicht.nl](https://www.mijnpensioenoverzicht.nl) for a projection based on your actual fund.
+- Partner pension or survivor's pension products
 
 ---
 
@@ -49,7 +49,7 @@ Use [mijnpensioenoverzicht.nl](https://www.mijnpensioenoverzicht.nl) for a proje
 | Tests | Vitest 4 (90 tests) |
 | Deployment | GitHub Pages via GitHub Actions |
 
-All logic runs in-browser. No backend, no data collection.
+All logic runs in-browser. No backend, no data collection. Settings and imported data can optionally be saved in localStorage (opt-in, browser-only).
 
 ---
 
