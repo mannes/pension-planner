@@ -1,88 +1,78 @@
-export const AOW_AGE = 67
-
 export interface SimParams {
-  startingSalary: number        // Annual gross salary at year 0 (€)
-  startingAge: number           // Current age; years = AOW_AGE − startingAge (clamped 5–45)
-  salaryGrowthRate: number      // Annual salary increase, decimal (e.g. 0.02)
-  employerPct: number           // Employer contribution % of pensioengrondslag
-  employeePct: number           // Employee contribution % of pensioengrondslag
-  extraSavingsMonthly: number   // 3rd pillar: extra personal monthly savings (€)
-  franchise: number             // AOW-franchise (€), excluded from pension base
-  franchiseGrowthRate: number   // Annual franchise increase (approx CPI-linked)
-  inflationRate: number         // For real-value conversion
-  years: number                 // Simulation period (derived: AOW_AGE − startingAge)
-  aowMonthly: number            // Estimated AOW monthly payout (for income comparison)
-  aowPartnerStatus: 'single' | 'partner'  // Affects AOW amount (alleenstaand vs samenwonend)
+  grossSalary: number;
+  startingAge: number;
+  salaryGrowthRate: number;
+  employerPct: number;
+  employeePct: number;
+  extraSavingsMonthly: number;
+  franchise: number;
+  franchiseGrowthRate: number;
+  inflationRate: number;
+  aowMonthly: number;
+  aowPartnerStatus: 'single' | 'partner';
+  annuityRate: number;
+  payoutYears: number;
 }
 
 export interface YearlyResult {
-  year: number
-  grossSalary: number
-  pensioengrondslag: number
-  franchise: number
-  marginalTaxRate: number
-  // 2nd pillar (employer scheme)
-  employerContribution: number
-  employeeContributionGross: number
-  taxSaving: number             // employee contribution × marginal tax rate
-  netEmployeeCost: number       // employeeContributionGross - taxSaving
-  totalAnnualContribution: number
-  // 3rd pillar (extra personal savings)
-  extraSavingsAnnual: number
-  extraSavingsTaxBenefit: number
-  extraSavingsNetCost: number
-  // Accumulated 2nd pillar capital (end of year, compound)
-  capitalBad: number            // 2% return
-  capitalNormal: number         // 5% return
-  capitalGood: number           // 8% return
-  // Accumulated 3rd pillar capital
-  capitalBadThird: number
-  capitalNormalThird: number
-  capitalGoodThird: number
+  year: number;
+  age: number;
+  grossSalary: number;
+  pensioengrondslag: number;
+  employerContribution: number;
+  employeeContribution: number;
+  taxSaving: number;
+  extraSavingsGross: number;
+  extraSavingsTaxSaving: number;
+  capital2Bad: number;
+  capital2Normal: number;
+  capital2Good: number;
+  capital3Bad: number;
+  capital3Normal: number;
+  capital3Good: number;
 }
 
-export const RETURN_RATES = {
-  bad: 0.02,
-  normal: 0.05,
-  good: 0.08,
-} as const
-
-export type ReturnScenario = keyof typeof RETURN_RATES
+export const AOW_AGE = 68;
+/** AOW franchise per 1 january 2026 (Centraal Aanspreekpunt Pensioenen, V&A 25-008) */
+export const FRANCHISE_2026 = 19172;
+export const MAX_PENSIOENGEVEND_LOON = 137800;
 
 export const DEFAULT_PARAMS: SimParams = {
-  startingSalary: 60_000,
-  startingAge: 32,             // → 35 years until AOW at 67
+  grossSalary: 60000,
+  startingAge: 32,
   salaryGrowthRate: 0.02,
-  employerPct: 0.10,
-  employeePct: 0.05,
+  employerPct: 0.015,
+  employeePct: 0.025,
   extraSavingsMonthly: 0,
-  franchise: 17_545,
+  franchise: FRANCHISE_2026,
   franchiseGrowthRate: 0.015,
   inflationRate: 0.02,
-  years: 35,
-  aowMonthly: 1_400,
+  aowMonthly: 1650, // alleenstaand, approx. Jan 2026 (SVB)
   aowPartnerStatus: 'single',
-}
+  annuityRate: 0.015,
+  payoutYears: 20,
+};
 
-// --- Pensioenoverzicht.nl import ---
+/**
+ * Box 1 – working age (≤66) – 2026
+ * Source: Belastingdienst, box-1 tarieven 2026
+ *   Schijf 1: t/m €38.883 → 35,75%
+ *   Schijf 2: €38.883 – €78.426 → 37,56%
+ *   Schijf 3: > €78.426 → 49,50%
+ */
+export const TAX_BRACKETS_WORKING = [
+  { limit: 38883, rate: 0.3575 },
+  { limit: 78426, rate: 0.3756 },
+  { limit: Infinity, rate: 0.495 },
+];
 
-export interface PensioenoverzichtProvider {
-  name: string
-  opgebouwdAnnual: number    // already accrued, annual gross (€)
-  teBereikenAnnual: number   // projected at full retirement age (€)
-  isIndicatief: boolean      // true = DC (indicatief), false = hard DB pension
-}
-
-export interface PensioenoverzichtData {
-  providers: PensioenoverzichtProvider[]
-  alreadyAccruedAnnual: number          // sum of all Opgebouwd (both DC + DB)
-  aowTeBereikenAlleenstaand: number | null
-  aowTeBereikenSamenwonend: number | null
-  standPer: string                       // report timestamp from TijdstipAanmakenBericht
-}
-
-// Dutch Box 1 income tax brackets (2024/2025 rates, below AOW age)
-export const TAX_BRACKETS = [
-  { limit: 75_518, rate: 0.3697, label: 'Schijf 1 (t/m €75.518)' },
-  { limit: Infinity, rate: 0.4950, label: 'Schijf 2 (boven €75.518)' },
-] as const
+/**
+ * Box 1 – AOW-gerechtigden (≥68) – 2026
+ * No AOW-premium on schijf 1 → 17,85% instead of 35,75%.
+ * Schijf 2 and 3 unchanged vs. working age.
+ */
+export const TAX_BRACKETS_RETIREMENT = [
+  { limit: 38883, rate: 0.1785 },
+  { limit: 78426, rate: 0.3756 },
+  { limit: Infinity, rate: 0.495 },
+];

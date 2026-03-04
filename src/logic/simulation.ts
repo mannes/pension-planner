@@ -1,126 +1,86 @@
-import { SimParams, YearlyResult, RETURN_RATES } from '../types'
-import { calcContributions } from './pension'
-import { getMarginalRate } from './tax'
+import { SimParams, YearlyResult, AOW_AGE } from '../types';
+import { getMarginalRate } from './tax';
+import { calcPensioengrondslag } from './pension';
 
-/**
- * Run the full 30-year pension simulation.
- *
- * Each year:
- * 1. Salary grows by salaryGrowthRate
- * 2. Franchise grows by franchiseGrowthRate
- * 3. Contributions are calculated on the pensioengrondslag
- * 4. Accumulated capital earns the annual return, then this year's contribution is added
- *
- * Capital formula:  capital[y] = capital[y-1] * (1 + returnRate) + contribution[y]
- * (Prior capital compounds first, then this year's contribution is added at year-end)
- */
+export const ANNUITY_RATE = 0.015;
+const SCENARIOS = { bad: 0.02, normal: 0.05, good: 0.08 };
+
+export function toReal(nominal: number, inflationRate: number, years: number): number {
+  return nominal / Math.pow(1 + inflationRate, years);
+}
+
+export function estimateMonthlyPension(
+  capital: number,
+  annuityRate: number = ANNUITY_RATE,
+  years: number = 20
+): number {
+  if (capital <= 0) return 0;
+  const r = annuityRate / 12;
+  const n = years * 12;
+  return (capital * r) / (1 - Math.pow(1 + r, -n));
+}
+
 export function runSimulation(params: SimParams): YearlyResult[] {
   const {
-    startingSalary,
+    grossSalary,
+    startingAge,
     salaryGrowthRate,
     employerPct,
     employeePct,
     extraSavingsMonthly,
     franchise,
     franchiseGrowthRate,
-    years,
-  } = params
+    inflationRate: _inflationRate,
+  } = params;
 
-  const results: YearlyResult[] = []
-  let capitalBad = 0
-  let capitalNormal = 0
-  let capitalGood = 0
-  let capitalBadThird = 0
-  let capitalNormalThird = 0
-  let capitalGoodThird = 0
+  void _inflationRate;
 
-  for (let y = 1; y <= years; y++) {
-    const grossSalary = startingSalary * Math.pow(1 + salaryGrowthRate, y - 1)
-    const currentFranchise = franchise * Math.pow(1 + franchiseGrowthRate, y - 1)
-    const marginalRate = getMarginalRate(grossSalary)
+  const years = Math.max(5, Math.min(45, AOW_AGE - startingAge));
+  const results: YearlyResult[] = [];
 
-    const breakdown = calcContributions(
-      grossSalary,
-      currentFranchise,
-      employerPct,
-      employeePct
-    )
+  let cap2Bad = 0, cap2Normal = 0, cap2Good = 0;
+  let cap3Bad = 0, cap3Normal = 0, cap3Good = 0;
 
-    const totalContribution = breakdown.totalFunded
+  for (let y = 0; y < years; y++) {
+    const salary = grossSalary * Math.pow(1 + salaryGrowthRate, y);
+    const currentFranchise = franchise * Math.pow(1 + franchiseGrowthRate, y);
+    const grondslag = calcPensioengrondslag(salary, currentFranchise);
 
-    // 3rd pillar: extra personal savings (monthly → annual)
-    const extraAnnual = extraSavingsMonthly * 12
-    const extraTaxBenefit = extraAnnual * marginalRate  // simplified: full deduction at marginal rate
-    const extraNetCost = extraAnnual - extraTaxBenefit
+    const employerC = employerPct * grondslag;
+    const employeeC = employeePct * grondslag;
+    const marginal = getMarginalRate(salary);
+    const taxSaving = employeeC * marginal;
 
-    // Compound growth for 2nd pillar
-    capitalBad    = capitalBad    * (1 + RETURN_RATES.bad)    + totalContribution
-    capitalNormal = capitalNormal * (1 + RETURN_RATES.normal) + totalContribution
-    capitalGood   = capitalGood   * (1 + RETURN_RATES.good)   + totalContribution
+    const extraAnnual = extraSavingsMonthly * 12;
+    const extraTaxSaving = extraAnnual * marginal;
 
-    // Compound growth for 3rd pillar
-    capitalBadThird    = capitalBadThird    * (1 + RETURN_RATES.bad)    + extraAnnual
-    capitalNormalThird = capitalNormalThird * (1 + RETURN_RATES.normal) + extraAnnual
-    capitalGoodThird   = capitalGoodThird   * (1 + RETURN_RATES.good)   + extraAnnual
+    // Compound prior capital, then add contributions
+    cap2Bad = cap2Bad * (1 + SCENARIOS.bad) + (employerC + employeeC);
+    cap2Normal = cap2Normal * (1 + SCENARIOS.normal) + (employerC + employeeC);
+    cap2Good = cap2Good * (1 + SCENARIOS.good) + (employerC + employeeC);
+
+    cap3Bad = cap3Bad * (1 + SCENARIOS.bad) + extraAnnual;
+    cap3Normal = cap3Normal * (1 + SCENARIOS.normal) + extraAnnual;
+    cap3Good = cap3Good * (1 + SCENARIOS.good) + extraAnnual;
 
     results.push({
-      year: y,
-      grossSalary,
-      pensioengrondslag: breakdown.pensioengrondslag,
-      franchise: currentFranchise,
-      marginalTaxRate: marginalRate,
-      employerContribution: breakdown.employerContribution,
-      employeeContributionGross: breakdown.employeeContributionGross,
-      taxSaving: breakdown.taxSaving,
-      netEmployeeCost: breakdown.netEmployeeCost,
-      totalAnnualContribution: totalContribution,
-      extraSavingsAnnual: extraAnnual,
-      extraSavingsTaxBenefit: extraTaxBenefit,
-      extraSavingsNetCost: extraNetCost,
-      capitalBad,
-      capitalNormal,
-      capitalGood,
-      capitalBadThird,
-      capitalNormalThird,
-      capitalGoodThird,
-    })
+      year: y + 1,
+      age: startingAge + y + 1,
+      grossSalary: salary,
+      pensioengrondslag: grondslag,
+      employerContribution: employerC,
+      employeeContribution: employeeC,
+      taxSaving,
+      extraSavingsGross: extraAnnual,
+      extraSavingsTaxSaving: extraTaxSaving,
+      capital2Bad: cap2Bad,
+      capital2Normal: cap2Normal,
+      capital2Good: cap2Good,
+      capital3Bad: cap3Bad,
+      capital3Normal: cap3Normal,
+      capital3Good: cap3Good,
+    });
   }
 
-  return results
-}
-
-/**
- * Adjust a nominal value to real (inflation-adjusted) purchasing power.
- * referenceYear = 0 means year 1 = slight adjustment, year 30 = significant.
- */
-export function toReal(nominalValue: number, year: number, inflationRate: number): number {
-  return nominalValue / Math.pow(1 + inflationRate, year)
-}
-
-/**
- * The annuity conversion rate used to turn accumulated capital into a monthly pension.
- *
- * This is intentionally separate from the investment return scenarios (2/5/8%).
- * During the payout phase, pension funds use a conservative "rekenrente" based on
- * actuarial life tables and guaranteed payout obligations — not equity returns.
- * In the Netherlands this has been around 1–2% in recent years.
- *
- * Using the investment return rate here would significantly overestimate the monthly
- * pension (e.g. at 5% the estimate is ~40% higher than at 1.5%).
- */
-export const ANNUITY_RATE = 0.015
-
-/**
- * Estimate a rough monthly pension payout assuming the capital is spread over 20 years
- * as an annuity at the given annual return rate.
- *
- * Call sites should pass ANNUITY_RATE (not the investment return rate) to get a
- * realistic estimate matching what pension funds use for capital-to-pension conversion.
- */
-export function estimateMonthlyPension(capital: number, annualReturn: number): number {
-  const n = 20 * 12
-  const monthlyRate = annualReturn / 12
-  if (monthlyRate === 0) return capital / n
-  // Standard annuity formula: PMT = PV * r / (1 - (1+r)^-n)
-  return capital * monthlyRate / (1 - Math.pow(1 + monthlyRate, -n))
+  return results;
 }

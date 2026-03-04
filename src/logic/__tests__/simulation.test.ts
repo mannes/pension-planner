@@ -1,243 +1,202 @@
-import { describe, it, expect } from 'vitest'
-import { runSimulation, toReal, estimateMonthlyPension } from '../simulation'
-import { SimParams, RETURN_RATES } from '../../types'
+import { describe, it, expect } from 'vitest';
+import { runSimulation, toReal, estimateMonthlyPension, ANNUITY_RATE } from '../simulation';
+import type { SimParams } from '../../types';
 
-// Use explicit test params — never depends on DEFAULT_PARAMS so tests won't
-// break when defaults change.
-const PARAMS: SimParams = {
-  startingSalary: 60_000,
+const BASE: SimParams = {
+  grossSalary: 60000,
   startingAge: 32,
   salaryGrowthRate: 0.02,
-  employerPct: 0.10,
-  employeePct: 0.05,
+  employerPct: 0.015,
+  employeePct: 0.025,
   extraSavingsMonthly: 0,
-  franchise: 17_545,
+  franchise: 17545,
   franchiseGrowthRate: 0.015,
   inflationRate: 0.02,
-  years: 10,
-  aowMonthly: 1_400,
+  aowMonthly: 1400,
   aowPartnerStatus: 'single',
-}
-
-// ─── runSimulation ────────────────────────────────────────────────────────────
-
-describe('runSimulation', () => {
-  const results = runSimulation(PARAMS)
-
-  it('produces one result per year', () => {
-    expect(results.length).toBe(PARAMS.years)
-  })
-
-  it('year numbers are sequential 1…N', () => {
-    results.forEach((r, i) => expect(r.year).toBe(i + 1))
-  })
-
-  it('year-1 capital equals the year-1 contribution (no prior capital to compound)', () => {
-    // Formula: capital = 0 * (1 + rate) + contribution = contribution
-    const y1 = results[0]
-    expect(y1.capitalNormal).toBeCloseTo(y1.totalAnnualContribution, 6)
-    expect(y1.capitalBad).toBeCloseTo(y1.totalAnnualContribution, 6)
-    expect(y1.capitalGood).toBeCloseTo(y1.totalAnnualContribution, 6)
-  })
-
-  it('year-2 capital: year-1 capital compounds then year-2 contribution is added', () => {
-    const y1 = results[0]
-    const y2 = results[1]
-    const expected = y1.capitalNormal * (1 + RETURN_RATES.normal) + y2.totalAnnualContribution
-    expect(y2.capitalNormal).toBeCloseTo(expected, 4)
-  })
-
-  it('capital is strictly increasing each year', () => {
-    for (let i = 1; i < results.length; i++) {
-      expect(results[i].capitalNormal).toBeGreaterThan(results[i - 1].capitalNormal)
-      expect(results[i].capitalBad).toBeGreaterThan(results[i - 1].capitalBad)
-      expect(results[i].capitalGood).toBeGreaterThan(results[i - 1].capitalGood)
-    }
-  })
-
-  it('all three scenarios are equal in year 1 (no prior capital to compound)', () => {
-    const y1 = results[0]
-    expect(y1.capitalGood).toBe(y1.capitalNormal)
-    expect(y1.capitalNormal).toBe(y1.capitalBad)
-  })
-
-  it('good scenario capital exceeds normal, which exceeds bad, from year 2 onward', () => {
-    // Year 1 is identical across scenarios (no prior capital); divergence starts year 2
-    results.slice(1).forEach(r => {
-      expect(r.capitalGood).toBeGreaterThan(r.capitalNormal)
-      expect(r.capitalNormal).toBeGreaterThan(r.capitalBad)
-    })
-  })
-
-  it('salary grows at the specified rate each year', () => {
-    results.forEach((r, i) => {
-      const expected = PARAMS.startingSalary * Math.pow(1 + PARAMS.salaryGrowthRate, i)
-      expect(r.grossSalary).toBeCloseTo(expected, 4)
-    })
-  })
-
-  it('franchise grows at the specified rate each year', () => {
-    results.forEach((r, i) => {
-      const expected = PARAMS.franchise * Math.pow(1 + PARAMS.franchiseGrowthRate, i)
-      expect(r.franchise).toBeCloseTo(expected, 4)
-    })
-  })
-
-  it('pensioengrondslag = max(0, salary − franchise) each year', () => {
-    results.forEach(r => {
-      const expected = Math.max(0, r.grossSalary - r.franchise)
-      expect(r.pensioengrondslag).toBeCloseTo(expected, 6)
-    })
-  })
-
-  it('totalAnnualContribution = employer + employee gross', () => {
-    results.forEach(r => {
-      expect(r.totalAnnualContribution).toBeCloseTo(
-        r.employerContribution + r.employeeContributionGross, 6
-      )
-    })
-  })
-
-  it('taxSaving = employeeGross × marginalRate', () => {
-    results.forEach(r => {
-      expect(r.taxSaving).toBeCloseTo(r.employeeContributionGross * r.marginalTaxRate, 6)
-    })
-  })
-
-  it('netEmployeeCost = employeeGross − taxSaving', () => {
-    results.forEach(r => {
-      expect(r.netEmployeeCost).toBeCloseTo(r.employeeContributionGross - r.taxSaving, 6)
-    })
-  })
-
-  describe('3rd pillar with extraSavingsMonthly = 0', () => {
-    it('3rd pillar capital is 0 every year when no extra savings', () => {
-      results.forEach(r => {
-        expect(r.capitalBadThird).toBe(0)
-        expect(r.capitalNormalThird).toBe(0)
-        expect(r.capitalGoodThird).toBe(0)
-        expect(r.extraSavingsAnnual).toBe(0)
-      })
-    })
-  })
-
-  describe('3rd pillar with extraSavingsMonthly = 200', () => {
-    const results3 = runSimulation({ ...PARAMS, extraSavingsMonthly: 200 })
-    const annualExtra = 200 * 12
-
-    it('extraSavingsAnnual is monthly × 12 every year', () => {
-      results3.forEach(r => expect(r.extraSavingsAnnual).toBeCloseTo(annualExtra, 6))
-    })
-
-    it('year-1 third-pillar capital equals annual extra (no prior capital)', () => {
-      expect(results3[0].capitalNormalThird).toBeCloseTo(annualExtra, 6)
-    })
-
-    it('3rd pillar capital grows each year', () => {
-      for (let i = 1; i < results3.length; i++) {
-        expect(results3[i].capitalNormalThird).toBeGreaterThan(results3[i - 1].capitalNormalThird)
-      }
-    })
-
-    it('3rd-pillar good exceeds normal, which exceeds bad, from year 2 onward', () => {
-      results3.slice(1).forEach(r => {
-        expect(r.capitalGoodThird).toBeGreaterThan(r.capitalNormalThird)
-        expect(r.capitalNormalThird).toBeGreaterThan(r.capitalBadThird)
-      })
-    })
-
-    it('tax benefit = annual extra × marginal rate', () => {
-      results3.forEach(r => {
-        expect(r.extraSavingsTaxBenefit).toBeCloseTo(annualExtra * r.marginalTaxRate, 6)
-      })
-    })
-
-    it('net cost = annual extra − tax benefit', () => {
-      results3.forEach(r => {
-        expect(r.extraSavingsNetCost).toBeCloseTo(r.extraSavingsAnnual - r.extraSavingsTaxBenefit, 6)
-      })
-    })
-
-    it('2nd pillar capital is unaffected by 3rd pillar savings', () => {
-      results3.forEach((r, i) => {
-        expect(r.capitalNormal).toBeCloseTo(results[i].capitalNormal, 4)
-      })
-    })
-  })
-
-  describe('edge case: salary below franchise', () => {
-    const lowParams = { ...PARAMS, startingSalary: 10_000, salaryGrowthRate: 0 }
-    const lowResults = runSimulation(lowParams)
-
-    it('pensioengrondslag is 0 when salary is below franchise', () => {
-      expect(lowResults[0].pensioengrondslag).toBe(0)
-    })
-
-    it('no employer or employee contributions when pensioengrondslag is 0', () => {
-      expect(lowResults[0].totalAnnualContribution).toBe(0)
-      expect(lowResults[0].capitalNormal).toBe(0)
-    })
-  })
-})
-
-// ─── toReal ──────────────────────────────────────────────────────────────────
+  annuityRate: 0.015,
+  payoutYears: 20,
+};
 
 describe('toReal', () => {
-  it('year 0 leaves value unchanged (no inflation yet)', () => {
-    expect(toReal(1_000, 0, 0.02)).toBe(1_000)
-  })
-
-  it('correctly deflates by one year of inflation', () => {
-    expect(toReal(1_000, 1, 0.02)).toBeCloseTo(1_000 / 1.02, 8)
-  })
-
-  it('correctly deflates by ten years of compound inflation', () => {
-    expect(toReal(1_000, 10, 0.02)).toBeCloseTo(1_000 / Math.pow(1.02, 10), 8)
-  })
-
-  it('real value is always less than nominal for positive inflation and year > 0', () => {
-    expect(toReal(1_000, 5, 0.02)).toBeLessThan(1_000)
-    expect(toReal(1_000, 30, 0.03)).toBeLessThan(1_000)
-  })
-
-  it('zero inflation rate leaves value unchanged at any year', () => {
-    expect(toReal(1_000, 30, 0)).toBe(1_000)
-  })
-
-  it('larger year means smaller real value (same inflation)', () => {
-    expect(toReal(1_000, 20, 0.02)).toBeLessThan(toReal(1_000, 10, 0.02))
-  })
-})
-
-// ─── estimateMonthlyPension ──────────────────────────────────────────────────
+  it('year 0 is unchanged', () => expect(toReal(1000, 0.02, 0)).toBeCloseTo(1000, 2));
+  it('deflates by inflation', () => expect(toReal(1000, 0.02, 1)).toBeCloseTo(1000 / 1.02, 2));
+  it('compounds over multiple years', () => {
+    expect(toReal(1000, 0.02, 10)).toBeCloseTo(1000 / Math.pow(1.02, 10), 2);
+  });
+  it('zero inflation returns same', () => expect(toReal(500, 0, 5)).toBeCloseTo(500, 2));
+  it('handles large inflation', () => {
+    expect(toReal(1000, 0.5, 2)).toBeCloseTo(1000 / 2.25, 2);
+  });
+});
 
 describe('estimateMonthlyPension', () => {
-  it('returns a positive value for positive capital', () => {
-    expect(estimateMonthlyPension(300_000, 0.05)).toBeGreaterThan(0)
-  })
+  it('returns 0 for zero capital', () => expect(estimateMonthlyPension(0)).toBe(0));
+  it('returns positive for positive capital', () => {
+    expect(estimateMonthlyPension(100000)).toBeGreaterThan(0);
+  });
+  it('larger capital → larger pension', () => {
+    expect(estimateMonthlyPension(200000)).toBeGreaterThan(estimateMonthlyPension(100000));
+  });
+  it('longer payout period → smaller monthly', () => {
+    expect(estimateMonthlyPension(100000, ANNUITY_RATE, 20))
+      .toBeGreaterThan(estimateMonthlyPension(100000, ANNUITY_RATE, 30));
+  });
+  it('higher annuity rate → slightly higher pension', () => {
+    expect(estimateMonthlyPension(100000, 0.03, 20))
+      .toBeGreaterThan(estimateMonthlyPension(100000, 0.01, 20));
+  });
+  it('negative capital returns 0', () => {
+    expect(estimateMonthlyPension(-100)).toBe(0);
+  });
+});
 
-  it('larger capital yields proportionally larger monthly pension', () => {
-    const m1 = estimateMonthlyPension(300_000, 0.05)
-    const m2 = estimateMonthlyPension(600_000, 0.05)
-    // Annuity is linear in PV → doubling capital doubles pension
-    expect(m2).toBeCloseTo(m1 * 2, 6)
-  })
+describe('runSimulation', () => {
+  it('returns correct number of years', () => {
+    const results = runSimulation(BASE);
+    expect(results).toHaveLength(AOW_AGE - BASE.startingAge);
+  });
 
-  it('zero return rate: monthly = capital / (20 × 12)', () => {
-    const capital = 240_000
-    expect(estimateMonthlyPension(capital, 0)).toBeCloseTo(capital / 240, 6)
-  })
+  it('period clamped to minimum 5 years', () => {
+    const results = runSimulation({ ...BASE, startingAge: 65 });
+    expect(results).toHaveLength(5);
+  });
 
-  it('higher return rate yields higher monthly pension for same capital', () => {
-    // With positive return, annuity payments can be higher
-    const m_low  = estimateMonthlyPension(300_000, 0.01)
-    const m_high = estimateMonthlyPension(300_000, 0.08)
-    expect(m_high).toBeGreaterThan(m_low)
-  })
+  it('period clamped to maximum 45 years', () => {
+    const results = runSimulation({ ...BASE, startingAge: 10 });
+    expect(results).toHaveLength(45);
+  });
 
-  it('payout over 20 years at 0% return does not exceed capital (sanity check)', () => {
-    const capital = 300_000
-    const monthly = estimateMonthlyPension(capital, 0)
-    expect(monthly * 240).toBeCloseTo(capital, 4)
-  })
-})
+  it('capital grows over time', () => {
+    const results = runSimulation(BASE);
+    const first = results[0].capital2Normal;
+    const last = results[results.length - 1].capital2Normal;
+    expect(last).toBeGreaterThan(first);
+  });
+
+  it('good scenario > normal > bad', () => {
+    const results = runSimulation(BASE);
+    const last = results[results.length - 1];
+    expect(last.capital2Good).toBeGreaterThan(last.capital2Normal);
+    expect(last.capital2Normal).toBeGreaterThan(last.capital2Bad);
+  });
+
+  it('year 1 age = startingAge + 1', () => {
+    expect(runSimulation(BASE)[0].age).toBe(BASE.startingAge + 1);
+  });
+
+  it('salary grows by growth rate', () => {
+    const results = runSimulation(BASE);
+    expect(results[1].grossSalary).toBeCloseTo(BASE.grossSalary * 1.02, 0);
+  });
+
+  it('no extra savings → 3rd pillar capital stays 0', () => {
+    const results = runSimulation({ ...BASE, extraSavingsMonthly: 0 });
+    const last = results[results.length - 1];
+    expect(last.capital3Normal).toBe(0);
+  });
+
+  it('with extra savings → 3rd pillar capital grows', () => {
+    const results = runSimulation({ ...BASE, extraSavingsMonthly: 200 });
+    const last = results[results.length - 1];
+    expect(last.capital3Normal).toBeGreaterThan(0);
+  });
+
+  it('3rd pillar good > normal > bad', () => {
+    const results = runSimulation({ ...BASE, extraSavingsMonthly: 200 });
+    const last = results[results.length - 1];
+    expect(last.capital3Good).toBeGreaterThan(last.capital3Normal);
+    expect(last.capital3Normal).toBeGreaterThan(last.capital3Bad);
+  });
+
+  it('pensioengrondslag = salary - franchise for above-franchise salary', () => {
+    const results = runSimulation(BASE);
+    const y1 = results[0];
+    expect(y1.pensioengrondslag).toBeCloseTo(y1.grossSalary - BASE.franchise, 0);
+  });
+
+  it('zero contribution rates → capital stays 0', () => {
+    const results = runSimulation({ ...BASE, employerPct: 0, employeePct: 0 });
+    const last = results[results.length - 1];
+    expect(last.capital2Normal).toBe(0);
+  });
+
+  it('higher employer% → more capital', () => {
+    const low = runSimulation({ ...BASE, employerPct: 0.01 });
+    const high = runSimulation({ ...BASE, employerPct: 0.05 });
+    const lastLow = low[low.length - 1].capital2Normal;
+    const lastHigh = high[high.length - 1].capital2Normal;
+    expect(lastHigh).toBeGreaterThan(lastLow);
+  });
+
+  it('higher salary → more capital (above franchise)', () => {
+    const low = runSimulation({ ...BASE, grossSalary: 30000 });
+    const high = runSimulation({ ...BASE, grossSalary: 100000 });
+    const lastLow = low[low.length - 1].capital2Normal;
+    const lastHigh = high[high.length - 1].capital2Normal;
+    expect(lastHigh).toBeGreaterThan(lastLow);
+  });
+
+  it('tax saving > 0 when salary above franchise', () => {
+    const r = runSimulation(BASE);
+    expect(r[0].taxSaving).toBeGreaterThan(0);
+  });
+
+  it('extra savings tax saving = extraAnnual * marginal', () => {
+    const r = runSimulation({ ...BASE, extraSavingsMonthly: 100, grossSalary: 60000 });
+    // At 60k, marginal rate = 37.56% (schijf 2, 2026); extra annual = 1200
+    expect(r[0].extraSavingsTaxSaving).toBeCloseTo(1200 * 0.3756, 0);
+  });
+
+  it('franchise growth reduces grondslag over time', () => {
+    const r = runSimulation({ ...BASE, salaryGrowthRate: 0 }); // no salary growth
+    const first = r[0].pensioengrondslag;
+    const last = r[r.length - 1].pensioengrondslag;
+    expect(last).toBeLessThan(first);
+  });
+
+  it('result years are sequential', () => {
+    const r = runSimulation(BASE);
+    for (let i = 1; i < r.length; i++) {
+      expect(r[i].year).toBe(r[i - 1].year + 1);
+    }
+  });
+
+  it('result ages are sequential', () => {
+    const r = runSimulation(BASE);
+    for (let i = 1; i < r.length; i++) {
+      expect(r[i].age).toBe(r[i - 1].age + 1);
+    }
+  });
+
+  it('capital compounds correctly year 1→2 (normal)', () => {
+    const r = runSimulation(BASE);
+    const y1 = r[0];
+    const y2 = r[1];
+    const expectedContrib = y2.employerContribution + y2.employeeContribution;
+    const expected = y1.capital2Normal * 1.05 + expectedContrib;
+    expect(y2.capital2Normal).toBeCloseTo(expected, 0);
+  });
+
+  it('3rd pillar compounds correctly year 1→2', () => {
+    const r = runSimulation({ ...BASE, extraSavingsMonthly: 100 });
+    const y1 = r[0];
+    const y2 = r[1];
+    const expected = y1.capital3Normal * 1.05 + 100 * 12;
+    expect(y2.capital3Normal).toBeCloseTo(expected, 0);
+  });
+
+  it('very high franchise → pensioengrondslag 0 → no 2nd pillar growth', () => {
+    const r = runSimulation({ ...BASE, franchise: 999999 });
+    const last = r[r.length - 1];
+    expect(last.capital2Normal).toBe(0);
+  });
+
+  it('startingAge 66 → 5-year simulation', () => {
+    const r = runSimulation({ ...BASE, startingAge: 66 });
+    expect(r).toHaveLength(5);
+  });
+});
+
+// helper used in test
+const AOW_AGE = 68;

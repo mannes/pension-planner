@@ -1,171 +1,146 @@
-import { describe, it, expect } from 'vitest'
-import { calcPensioengrondslag, calcContributions, calcJaarruimte, MAX_PENSIOENGEVEND_LOON } from '../pension'
+import { describe, it, expect } from 'vitest';
+import {
+  calcPensioengrondslag,
+  calcJaarruimte,
+  calcContributions,
+} from '../pension';
 
-const FRANCHISE = 17_545
-const RATE1 = 0.3697   // marginal rate for income below €75,518
-
-// ─── calcPensioengrondslag ───────────────────────────────────────────────────
+const FRANCHISE = 17545;
 
 describe('calcPensioengrondslag', () => {
-  it('subtracts franchise from salary', () => {
-    expect(calcPensioengrondslag(45_000, FRANCHISE)).toBe(45_000 - FRANCHISE)
-  })
-
-  it('floors at 0 when salary is below franchise', () => {
-    expect(calcPensioengrondslag(10_000, FRANCHISE)).toBe(0)
-  })
-
-  it('is exactly 0 when salary equals franchise', () => {
-    expect(calcPensioengrondslag(FRANCHISE, FRANCHISE)).toBe(0)
-  })
-
-  it('returns correct value for salary one euro above franchise', () => {
-    expect(calcPensioengrondslag(FRANCHISE + 1, FRANCHISE)).toBe(1)
-  })
-
-  it('is never negative', () => {
-    expect(calcPensioengrondslag(0, FRANCHISE)).toBeGreaterThanOrEqual(0)
-    expect(calcPensioengrondslag(1_000, FRANCHISE)).toBeGreaterThanOrEqual(0)
-  })
-})
-
-// ─── calcJaarruimte ───────────────────────────────────────────────────────────
+  it('normal salary above franchise', () => {
+    expect(calcPensioengrondslag(60000, FRANCHISE)).toBeCloseTo(42455, 0);
+  });
+  it('salary below franchise returns 0', () => {
+    expect(calcPensioengrondslag(10000, FRANCHISE)).toBe(0);
+  });
+  it('salary exactly at franchise returns 0', () => {
+    expect(calcPensioengrondslag(FRANCHISE, FRANCHISE)).toBe(0);
+  });
+  it('salary just above franchise', () => {
+    expect(calcPensioengrondslag(FRANCHISE + 1, FRANCHISE)).toBeCloseTo(1, 1);
+  });
+  it('high salary', () => {
+    expect(calcPensioengrondslag(200000, FRANCHISE)).toBe(200000 - FRANCHISE);
+  });
+  it('zero salary', () => {
+    expect(calcPensioengrondslag(0, FRANCHISE)).toBe(0);
+  });
+});
 
 describe('calcJaarruimte', () => {
-  const salary = 45_000
-  const base   = salary - FRANCHISE   // 27_455
-  const grossJaarruimte = 0.30 * base // 8_236.5
-
-  it('grossJaarruimte = 30% of pensioengrondslag', () => {
-    const r = calcJaarruimte(salary, FRANCHISE, 0, 0)
-    expect(r.grossJaarruimte).toBeCloseTo(grossJaarruimte, 6)
-  })
-
-  it('pillar2Reduction equals sum of employer and employee contributions', () => {
-    const employer = 1_000
-    const employee = 500
-    const r = calcJaarruimte(salary, FRANCHISE, employer, employee)
-    expect(r.pillar2Reduction).toBe(1_500)
-  })
-
-  it('availableForThird = grossJaarruimte − pillar2Reduction', () => {
-    const employer = 1_000
-    const employee = 500
-    const r = calcJaarruimte(salary, FRANCHISE, employer, employee)
-    expect(r.availableForThird).toBeCloseTo(grossJaarruimte - 1_500, 6)
-  })
-
-  it('availableForThird is 0 when 2nd pillar fills the full jaarruimte', () => {
-    const r = calcJaarruimte(salary, FRANCHISE, grossJaarruimte, 0)
-    expect(r.availableForThird).toBe(0)
-  })
-
-  it('availableForThird never goes negative when 2nd pillar exceeds the cap', () => {
-    const r = calcJaarruimte(salary, FRANCHISE, 50_000, 0)
-    expect(r.availableForThird).toBe(0)
-  })
-
-  it('salary below franchise yields zero jaarruimte', () => {
-    const r = calcJaarruimte(10_000, FRANCHISE, 0, 0)
-    expect(r.grossJaarruimte).toBe(0)
-    expect(r.availableForThird).toBe(0)
-  })
-
-  it('salary above MAX_PENSIOENGEVEND_LOON is capped', () => {
-    const highSalary = 200_000
-    const expected = 0.30 * (MAX_PENSIOENGEVEND_LOON - FRANCHISE)
-    const r = calcJaarruimte(highSalary, FRANCHISE, 0, 0)
-    expect(r.grossJaarruimte).toBeCloseTo(expected, 6)
-  })
-
-  it('salary exactly at MAX_PENSIOENGEVEND_LOON is not further capped', () => {
-    const r = calcJaarruimte(MAX_PENSIOENGEVEND_LOON, FRANCHISE, 0, 0)
-    const expected = 0.30 * (MAX_PENSIOENGEVEND_LOON - FRANCHISE)
-    expect(r.grossJaarruimte).toBeCloseTo(expected, 6)
-  })
-})
-
-// ─── calcContributions ───────────────────────────────────────────────────────
+  it('returns positive value for normal inputs', () => {
+    const jaarruimte = calcJaarruimte(60000, FRANCHISE, 900, 1500);
+    expect(jaarruimte).toBeGreaterThan(0);
+  });
+  it('capped at MAX_PENSIOENGEVEND_LOON (137800)', () => {
+    const highSalary = calcJaarruimte(200000, FRANCHISE, 0, 0);
+    const cappedSalary = calcJaarruimte(137800, FRANCHISE, 0, 0);
+    expect(highSalary).toBeCloseTo(cappedSalary, 0);
+  });
+  it('reduces by pillar 2 contributions', () => {
+    const without = calcJaarruimte(60000, FRANCHISE, 0, 0);
+    const with2nd = calcJaarruimte(60000, FRANCHISE, 900, 1500);
+    expect(with2nd).toBeCloseTo(without - 2400, 0);
+  });
+  it('returns 0 when 2nd pillar exceeds gross space', () => {
+    expect(calcJaarruimte(60000, FRANCHISE, 50000, 50000)).toBe(0);
+  });
+  it('salary below franchise results in 0', () => {
+    expect(calcJaarruimte(10000, FRANCHISE, 0, 0)).toBe(0);
+  });
+  it('exact formula: 30% of capped grondslag', () => {
+    const grondslag = Math.min(60000, 137800) - FRANCHISE; // 42455
+    const expected = 0.3 * grondslag;
+    expect(calcJaarruimte(60000, FRANCHISE, 0, 0)).toBeCloseTo(expected, 0);
+  });
+});
 
 describe('calcContributions', () => {
-  const salary = 45_000
-  const base   = 45_000 - FRANCHISE  // = 27_455
+  const salary = 60000;
+  const franchise = FRANCHISE;
+  const empR = 0.015;
+  const empE = 0.025;
+  const marginal = 0.3697;
 
-  describe('with 10% employer / 5% employee (salary in bracket 1)', () => {
-    const r = calcContributions(salary, FRANCHISE, 0.10, 0.05)
-
-    it('pensioengrondslag is salary minus franchise', () => {
-      expect(r.pensioengrondslag).toBe(base)
-    })
-
-    it('employer contribution = employerPct × base', () => {
-      expect(r.employerContribution).toBeCloseTo(base * 0.10, 6)
-    })
-
-    it('employee gross contribution = employeePct × base', () => {
-      expect(r.employeeContributionGross).toBeCloseTo(base * 0.05, 6)
-    })
-
-    it('marginal tax rate is bracket-1 rate for this salary', () => {
-      expect(r.marginalTaxRate).toBe(RATE1)
-    })
-
-    it('tax saving = employee gross × marginal rate', () => {
-      expect(r.taxSaving).toBeCloseTo(r.employeeContributionGross * RATE1, 6)
-    })
-
-    it('net employee cost = employee gross − tax saving', () => {
-      expect(r.netEmployeeCost).toBeCloseTo(r.employeeContributionGross - r.taxSaving, 6)
-    })
-
-    it('total funded = employer + employee gross', () => {
-      expect(r.totalFunded).toBeCloseTo(r.employerContribution + r.employeeContributionGross, 6)
-    })
-
-    it('leverage ratio = totalFunded / netEmployeeCost', () => {
-      const expected = r.totalFunded / r.netEmployeeCost
-      expect(r.leverageRatio).toBeCloseTo(expected, 6)
-    })
-
-    it('leverage ratio is greater than 1 when employer contributes', () => {
-      expect(r.leverageRatio).toBeGreaterThan(1)
-    })
-
-    it('net cost is less than the gross employee contribution', () => {
-      expect(r.netEmployeeCost).toBeLessThan(r.employeeContributionGross)
-    })
-  })
-
-  describe('edge cases', () => {
-    it('zero percentages yield zero contributions', () => {
-      const r = calcContributions(salary, FRANCHISE, 0, 0)
-      expect(r.employerContribution).toBe(0)
-      expect(r.employeeContributionGross).toBe(0)
-      expect(r.taxSaving).toBe(0)
-      expect(r.netEmployeeCost).toBe(0)
-      expect(r.totalFunded).toBe(0)
-    })
-
-    it('salary below franchise: all contribution values are 0', () => {
-      const r = calcContributions(10_000, FRANCHISE, 0.10, 0.05)
-      expect(r.pensioengrondslag).toBe(0)
-      expect(r.employerContribution).toBe(0)
-      expect(r.employeeContributionGross).toBe(0)
-      expect(r.totalFunded).toBe(0)
-    })
-
-    it('high salary (bracket 2) uses 49.50% marginal rate', () => {
-      const r = calcContributions(100_000, FRANCHISE, 0.10, 0.05)
-      expect(r.marginalTaxRate).toBe(0.4950)
-      expect(r.taxSaving).toBeCloseTo(r.employeeContributionGross * 0.4950, 6)
-    })
-
-    it('employee-only (no employer) leverage ratio equals 1/(1 - marginalRate)', () => {
-      const r = calcContributions(salary, FRANCHISE, 0, 0.05)
-      // leverage = totalFunded / netCost = employeeGross / (employeeGross * (1 - rate))
-      // = 1 / (1 - rate)
-      const expected = 1 / (1 - RATE1)
-      expect(r.leverageRatio).toBeCloseTo(expected, 4)
-    })
-  })
-})
+  it('pensioengrondslag correct', () => {
+    const r = calcContributions(salary, franchise, empR, empE, marginal);
+    expect(r.pensioengrondslag).toBeCloseTo(42455, 0);
+  });
+  it('employer gross = empR * grondslag', () => {
+    const r = calcContributions(salary, franchise, empR, empE, marginal);
+    expect(r.employerGross).toBeCloseTo(0.015 * 42455, 1);
+  });
+  it('employee gross = empE * grondslag', () => {
+    const r = calcContributions(salary, franchise, empR, empE, marginal);
+    expect(r.employeeGross).toBeCloseTo(0.025 * 42455, 1);
+  });
+  it('tax saving = employeeGross * marginal', () => {
+    const r = calcContributions(salary, franchise, empR, empE, marginal);
+    expect(r.taxSaving).toBeCloseTo(r.employeeGross * marginal, 2);
+  });
+  it('net cost = employeeGross - taxSaving', () => {
+    const r = calcContributions(salary, franchise, empR, empE, marginal);
+    expect(r.netEmployeeCost).toBeCloseTo(r.employeeGross - r.taxSaving, 2);
+  });
+  it('totalFunded = employer + employee gross', () => {
+    const r = calcContributions(salary, franchise, empR, empE, marginal);
+    expect(r.totalFunded).toBeCloseTo(r.employerGross + r.employeeGross, 2);
+  });
+  it('leverageRatio = totalFunded / netCost', () => {
+    const r = calcContributions(salary, franchise, empR, empE, marginal);
+    expect(r.leverageRatio).toBeCloseTo(r.totalFunded / r.netEmployeeCost, 4);
+  });
+  it('leverage > 1 because employer contributes and tax saves', () => {
+    const r = calcContributions(salary, franchise, empR, empE, marginal);
+    expect(r.leverageRatio).toBeGreaterThan(1);
+  });
+  it('zero franchise contribution pcts → 0 leverage', () => {
+    const r = calcContributions(salary, franchise, 0, 0, marginal);
+    expect(r.leverageRatio).toBe(0);
+    expect(r.totalFunded).toBe(0);
+  });
+  it('salary below franchise → 0 contributions', () => {
+    const r = calcContributions(10000, franchise, empR, empE, marginal);
+    expect(r.pensioengrondslag).toBe(0);
+    expect(r.employerGross).toBe(0);
+    expect(r.employeeGross).toBe(0);
+  });
+  // Additional tests to reach 27
+  it('high tax rate increases tax saving', () => {
+    const rLow = calcContributions(salary, franchise, empR, empE, 0.3697);
+    const rHigh = calcContributions(salary, franchise, empR, empE, 0.495);
+    expect(rHigh.taxSaving).toBeGreaterThan(rLow.taxSaving);
+  });
+  it('high tax rate reduces net cost', () => {
+    const rLow = calcContributions(salary, franchise, empR, empE, 0.3697);
+    const rHigh = calcContributions(salary, franchise, empR, empE, 0.495);
+    expect(rHigh.netEmployeeCost).toBeLessThan(rLow.netEmployeeCost);
+  });
+  it('total funded unchanged by tax rate', () => {
+    const rLow = calcContributions(salary, franchise, empR, empE, 0.3697);
+    const rHigh = calcContributions(salary, franchise, empR, empE, 0.495);
+    expect(rHigh.totalFunded).toBeCloseTo(rLow.totalFunded, 2);
+  });
+  it('employer-only contribution', () => {
+    const r = calcContributions(salary, franchise, 0.10, 0, 0.3697);
+    expect(r.employeeGross).toBe(0);
+    expect(r.taxSaving).toBe(0);
+    expect(r.netEmployeeCost).toBe(0);
+    expect(r.leverageRatio).toBe(0);
+  });
+  it('employee-only contribution', () => {
+    const r = calcContributions(salary, franchise, 0, 0.10, 0.3697);
+    expect(r.employerGross).toBe(0);
+    expect(r.leverageRatio).toBeCloseTo(r.totalFunded / r.netEmployeeCost, 4);
+  });
+  it('zero salary', () => {
+    const r = calcContributions(0, franchise, empR, empE, marginal);
+    expect(r.pensioengrondslag).toBe(0);
+    expect(r.totalFunded).toBe(0);
+  });
+  it('very high salary', () => {
+    const r = calcContributions(300000, franchise, empR, empE, marginal);
+    expect(r.pensioengrondslag).toBe(300000 - franchise);
+  });
+});

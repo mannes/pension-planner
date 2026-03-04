@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",
+      "Bash(* --version)",
+      "Bash(* --help *)",
+      "Bash(npm test)",
+      "Bash(npm run build)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(npx tsc --noEmit)"
+    ]
+  }
+}

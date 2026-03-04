@@ -1,132 +1,142 @@
-import { YearlyResult } from '../types'
-import { InfoBox } from './InfoBox'
-import { useTranslation } from '../context/LanguageContext'
+import { useTranslation } from '../context/LanguageContext';
+import { InfoBox } from './InfoBox';
+import { calcContributions } from '../logic/pension';
+import { getMarginalRate } from '../logic/tax';
+import type { SimParams } from '../types';
 
-interface Props {
-  result: YearlyResult   // year-1 data
-  realMode: boolean
+interface TaxLeveragePanelProps {
+  params: SimParams;
 }
 
-const euro = (v: number) =>
-  v.toLocaleString('nl-NL', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-const pct = (v: number) => `${(v * 100).toFixed(2)}%`
+const fmt = (n: number) =>
+  n.toLocaleString('nl-NL', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
-interface RowProps {
-  label: string
-  value: string
-  indent?: boolean
-  negative?: boolean
-  highlight?: boolean
-  subtotal?: boolean
-  accent?: string
+interface WaterfallRowProps {
+  label: string;
+  value: number;
+  maxValue: number;
+  variant?: 'default' | 'deduct' | 'subtotal' | 'positive' | 'total';
+  indent?: boolean;
 }
 
-function Row({ label, value, indent, negative, highlight, subtotal, accent }: RowProps) {
+function WaterfallRow({ label, value, maxValue, variant = 'default', indent }: WaterfallRowProps) {
+  const barPct = maxValue > 0 ? Math.min(100, Math.abs(value) / maxValue * 100) : 0;
+
+  const colors: Record<NonNullable<WaterfallRowProps['variant']>, { bar: string; text: string; bg: string }> = {
+    default:   { bar: 'bg-blue-400',    text: 'text-gray-700',   bg: '' },
+    deduct:    { bar: 'bg-red-300',     text: 'text-red-600',    bg: '' },
+    subtotal:  { bar: 'bg-gray-300',    text: 'text-gray-700',   bg: 'bg-gray-50' },
+    positive:  { bar: 'bg-emerald-400', text: 'text-emerald-600', bg: '' },
+    total:     { bar: 'bg-blue-600',    text: 'text-blue-700 font-bold', bg: 'bg-blue-50' },
+  };
+
+  const c = colors[variant];
+
   return (
-    <div className={`flex justify-between items-center py-1.5 px-3 rounded-md ${
-      highlight ? 'bg-blue-600 text-white font-bold' :
-      subtotal ? 'bg-gray-50 font-semibold text-gray-800' :
-      'text-gray-700'
-    }`}>
-      <span className={`text-sm ${indent ? 'pl-4 text-gray-500' : ''}`}>{label}</span>
-      <span className={`text-sm font-mono tabular-nums ${
-        accent ?? (negative ? 'text-red-600' : highlight ? 'text-white' : '')
-      }`}>
-        {negative ? '− ' : ''}{value}
-      </span>
+    <div className={`py-1.5 px-2 rounded-lg ${c.bg} ${indent ? 'ml-4' : ''}`}>
+      <div className="flex justify-between items-center text-xs mb-1">
+        <span className="text-gray-600">{label}</span>
+        <span className={`font-semibold ${c.text}`}>
+          {variant === 'deduct' ? '−' : ''}{fmt(Math.abs(value))}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${c.bar} transition-all duration-500`}
+          style={{ width: `${barPct}%` }}
+        />
+      </div>
     </div>
-  )
+  );
 }
 
-export function TaxLeveragePanel({ result, realMode }: Props) {
-  const { t } = useTranslation()
+export function TaxLeveragePanel({ params }: TaxLeveragePanelProps) {
+  const { t } = useTranslation();
 
-  const {
-    grossSalary,
-    franchise,
-    pensioengrondslag,
-    employerContribution,
-    employeeContributionGross,
-    taxSaving,
-    netEmployeeCost,
-    marginalTaxRate,
-    extraSavingsAnnual,
-    extraSavingsTaxBenefit,
-    extraSavingsNetCost,
-  } = result
+  const marginal = getMarginalRate(params.grossSalary);
+  const contrib = calcContributions(
+    params.grossSalary,
+    params.franchise,
+    params.employerPct,
+    params.employeePct,
+    marginal
+  );
 
-  const totalFunded = employerContribution + employeeContributionGross
-  const leverageRatio = netEmployeeCost > 0 ? totalFunded / netEmployeeCost : 0
-  const employeePctOfBase = pensioengrondslag > 0 ? employeeContributionGross / pensioengrondslag : 0
+  const extraAnnual = params.extraSavingsMonthly * 12;
+  const extraTaxBenefit = extraAnnual * marginal;
+  const extraNetCost = extraAnnual - extraTaxBenefit;
+
+  const maxValue = Math.max(params.grossSalary, contrib.totalFunded);
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-1">
-        {t.taxPanel.title}
-      </h2>
-      <p className="text-xs text-gray-500 mb-1">{t.taxPanel.subtitle}</p>
-      {realMode && (
-        <p className="text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-1.5 mb-4 inline-block">
-          {t.taxPanel.currentYearNote}
-        </p>
-      )}
-      {!realMode && <div className="mb-4" />}
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5" data-guide-step="3">
+      <h2 className="font-semibold text-gray-800 mb-4 text-base">{t.tax.title}</h2>
 
-      <div className="space-y-0.5">
-        <Row label={t.taxPanel.grossSalary} value={euro(grossSalary)} />
-        <Row label={t.taxPanel.minusFranchise} value={euro(franchise)} indent negative />
-        <Row label={t.taxPanel.pensionBase} value={euro(pensioengrondslag)} subtotal />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Waterfall */}
+        <div className="space-y-1">
+          <WaterfallRow label={t.tax.grossSalary}  value={params.grossSalary}        maxValue={maxValue} variant="default" />
+          <WaterfallRow label={t.tax.franchise}     value={params.franchise}          maxValue={maxValue} variant="deduct"  indent />
+          <WaterfallRow label={t.tax.pensionBase}   value={contrib.pensioengrondslag} maxValue={maxValue} variant="subtotal" />
+          <div className="h-px bg-gray-100 my-1" />
+          <WaterfallRow label={t.tax.employeeGross} value={contrib.employeeGross}     maxValue={maxValue} variant="default" />
+          <WaterfallRow label={t.tax.taxSaving}     value={contrib.taxSaving}         maxValue={maxValue} variant="positive" indent />
+          <WaterfallRow label={t.tax.netCost}       value={contrib.netEmployeeCost}   maxValue={maxValue} variant="subtotal" />
+          <div className="h-px bg-gray-100 my-1" />
+          <WaterfallRow label={t.tax.employer}      value={contrib.employerGross}     maxValue={maxValue} variant="positive" />
+          <WaterfallRow label={t.tax.totalFunded}   value={contrib.totalFunded}       maxValue={maxValue} variant="total" />
+        </div>
 
-        <div className="h-3" />
-
-        <Row
-          label={`${t.taxPanel.employeeContrib} (${pct(employeePctOfBase)})`}
-          value={euro(employeeContributionGross)}
-        />
-        <Row
-          label={`${t.taxPanel.taxSavingLabel} (${pct(marginalTaxRate)})`}
-          value={euro(taxSaving)}
-          indent negative accent="text-green-600"
-        />
-        <Row label={t.taxPanel.netCost} value={euro(netEmployeeCost)} subtotal />
-
-        <div className="h-3" />
-
-        <Row label={t.taxPanel.employerContrib} value={euro(employerContribution)} accent="text-blue-600" />
-        <Row label={t.taxPanel.totalFunded} value={euro(totalFunded)} subtotal />
-
-        {extraSavingsAnnual > 0 && (
-          <>
-            <div className="h-3" />
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 pb-0.5">
-              {t.taxPanel.thirdPillarTitle}
+        {/* Leverage callout + 3rd pillar */}
+        <div className="space-y-4">
+          {/* Leverage ratio badge */}
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white">
+            <p className="text-xs text-blue-200 mb-1">{t.tax.leverageRatio}</p>
+            <p className="text-4xl font-bold">
+              {contrib.leverageRatio > 0 ? contrib.leverageRatio.toFixed(2) : '—'}
+              <span className="text-lg font-normal text-blue-200">×</span>
             </p>
-            <Row label={t.taxPanel.thirdPillarContrib} value={euro(extraSavingsAnnual)} />
-            <Row
-              label={`${t.taxPanel.taxSavingLabel} (${pct(marginalTaxRate)})`}
-              value={euro(extraSavingsTaxBenefit)}
-              indent negative accent="text-green-600"
-            />
-            <Row label={t.taxPanel.thirdPillarNetCost} value={euro(extraSavingsNetCost)} subtotal />
-          </>
-        )}
-
-        <div className="h-3" />
-
-        <div className="rounded-xl bg-blue-600 text-white px-3 py-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold">{t.taxPanel.leverageTitle}</span>
-            <span className="text-xl font-bold">{leverageRatio.toFixed(2)}×</span>
+            <p className="text-xs text-blue-200 mt-2 leading-relaxed">
+              Voor elke €1 netto bijdrage gaat{' '}
+              {contrib.leverageRatio > 0 ? contrib.leverageRatio.toFixed(2) : '0'}×
+              {' '}naar uw pensioen.
+            </p>
           </div>
-          <p className="text-xs text-blue-100 mt-1">
-            {t.taxPanel.leverageBody(euro(leverageRatio))}
-          </p>
+
+          {/* Marginal rate badge */}
+          <div className="bg-gray-50 rounded-xl p-3 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">Marginaal tarief</span>
+              <span className="font-bold text-gray-800">{(marginal * 100).toFixed(2)}%</span>
+            </div>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-gray-500">Netto kosten werknemer</span>
+              <span className="font-semibold text-gray-700">{fmt(contrib.netEmployeeCost)}/jr</span>
+            </div>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-emerald-600">Belastingbesparing</span>
+              <span className="font-semibold text-emerald-600">{fmt(contrib.taxSaving)}/jr</span>
+            </div>
+          </div>
+
+          {/* 3rd pillar section */}
+          {extraAnnual > 0 && (
+            <div className="border border-violet-200 rounded-xl p-3 space-y-1">
+              <p className="text-xs font-semibold text-violet-700 mb-2">
+                {t.tax.extraSavings}: {fmt(params.extraSavingsMonthly)}/mnd
+              </p>
+              <WaterfallRow label={t.tax.extraTaxBenefit} value={extraTaxBenefit} maxValue={extraAnnual} variant="positive" indent />
+              <WaterfallRow label={t.tax.extraNetCost}    value={extraNetCost}    maxValue={extraAnnual} variant="total" />
+            </div>
+          )}
+
+          <p className="text-xs text-gray-400 italic">{t.tax.realModeNote}</p>
         </div>
       </div>
 
-      <InfoBox title={t.infoBoxes.taxLeverage.title} content={t.infoBoxes.taxLeverage.content} />
-      <InfoBox title={t.infoBoxes.pensioengrondslag.title} content={t.infoBoxes.pensioengrondslag.content} />
-      <InfoBox title={t.infoBoxes.dutchTax.title} content={t.infoBoxes.dutchTax.content} />
-    </section>
-  )
+      <InfoBox title={t.infoBoxes.taxLeverage.title}  content={t.infoBoxes.taxLeverage.content} />
+      <InfoBox title={t.infoBoxes.taxBrackets.title}  content={t.infoBoxes.taxBrackets.content} />
+      <InfoBox title={t.infoBoxes.pensionBase.title}  content={t.infoBoxes.pensionBase.content} />
+    </div>
+  );
 }

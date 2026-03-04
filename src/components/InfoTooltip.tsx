@@ -1,73 +1,118 @@
-import { useState, useRef, useEffect, CSSProperties } from 'react'
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
-interface Props {
-  text: string
+interface InfoTooltipProps {
+  content: string;
 }
 
-export function InfoTooltip({ text }: Props) {
-  const [open, setOpen] = useState(false)
-  const [style, setStyle] = useState<CSSProperties>({})
-  const ref = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+type Placement = 'right' | 'left' | 'below';
+
+export function InfoTooltip({ content }: InfoTooltipProps) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, placement: 'right' as Placement });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
       }
     }
-    if (open) document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+    if (open) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
 
-  function computeStyle(): CSSProperties {
-    if (!buttonRef.current) return {}
-    const rect = buttonRef.current.getBoundingClientRect()
-    const TOOLTIP_W = 264
-    const TOOLTIP_H = 160
+  function handleToggle() {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const pw = 256; // w-64
+      const gap = 8;
+      const margin = 8;
 
-    const s: CSSProperties = { position: 'fixed', width: TOOLTIP_W, zIndex: 9999 }
+      let placement: Placement;
+      let top: number;
+      let left: number;
 
-    // Horizontal: prefer left-aligned to button; flip right if near right edge
-    if (window.innerWidth - rect.left < TOOLTIP_W) {
-      s.right = window.innerWidth - rect.right
-    } else {
-      s.left = rect.left
+      if (window.innerWidth - rect.right - gap >= pw + margin) {
+        placement = 'right';
+        left = rect.right + gap;
+        top = rect.top + rect.height / 2;
+      } else if (rect.left - gap >= pw + margin) {
+        placement = 'left';
+        left = rect.left - gap - pw;
+        top = rect.top + rect.height / 2;
+      } else {
+        // Not enough horizontal space — show below, centered and clamped
+        placement = 'below';
+        top = rect.bottom + gap;
+        left = Math.max(margin, Math.min(window.innerWidth - pw - margin, rect.left + rect.width / 2 - pw / 2));
+      }
+
+      setPos({ top, left, placement });
     }
-
-    // Vertical: show below button; flip up if near bottom edge
-    if (window.innerHeight - rect.bottom < TOOLTIP_H) {
-      s.bottom = window.innerHeight - rect.top + 4
-    } else {
-      s.top = rect.bottom + 4
-    }
-
-    return s
-  }
-
-  function handleOpen(isOpen: boolean) {
-    if (isOpen) setStyle(computeStyle())
-    setOpen(isOpen)
+    setOpen((v) => !v);
   }
 
   return (
-    <div className="relative inline-flex items-center" ref={ref}>
+    <span className="relative inline-block ml-1 align-middle">
       <button
-        ref={buttonRef}
+        ref={btnRef}
         type="button"
-        onClick={() => handleOpen(!open)}
-        onMouseEnter={() => handleOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        className="ml-1.5 w-4 h-4 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 flex-shrink-0"
-        aria-label="Meer informatie"
+        onClick={handleToggle}
+        aria-label="More information"
+        className={`inline-flex items-center justify-center w-4 h-4 rounded-full border text-[10px] font-bold leading-none transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+          open
+            ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
+            : 'bg-white border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500'
+        }`}
       >
-        ?
+        i
       </button>
-      {open && (
-        <div style={style} className="p-3 bg-white border border-blue-200 rounded-lg shadow-lg text-xs text-gray-700 leading-relaxed">
-          {text}
-        </div>
+
+      {open && createPortal(
+        <div
+          ref={popoverRef}
+          style={{
+            position: 'fixed',
+            top: pos.top,
+            left: pos.left,
+            transform: pos.placement !== 'below' ? 'translateY(-50%)' : undefined,
+            zIndex: 9999,
+          }}
+        >
+          {/* Arrow */}
+          {pos.placement === 'right' && (
+            <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-2 h-2 pointer-events-none">
+              <div className="w-2 h-2 bg-white border-l border-t border-gray-200 rotate-[-135deg] shadow-[-1px_-1px_0_0_#e5e7eb]" />
+            </div>
+          )}
+          {pos.placement === 'left' && (
+            <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-2 h-2 pointer-events-none">
+              <div className="w-2 h-2 bg-white border-r border-t border-gray-200 rotate-[45deg] shadow-[1px_-1px_0_0_#e5e7eb]" />
+            </div>
+          )}
+          {pos.placement === 'below' && (
+            <div className="absolute -top-1.5 left-4 w-2 h-2 pointer-events-none">
+              <div className="w-2 h-2 bg-white border-l border-t border-gray-200 rotate-[45deg] shadow-[-1px_-1px_0_0_#e5e7eb]" />
+            </div>
+          )}
+          {/* Popover */}
+          <div
+            className="w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-xs text-gray-600 leading-relaxed"
+            style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.10))' }}
+          >
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">i</span>
+              <p>{content}</p>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
-    </div>
-  )
+    </span>
+  );
 }

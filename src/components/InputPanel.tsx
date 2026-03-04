@@ -1,40 +1,52 @@
-import { useState } from 'react'
-import { SimParams, AOW_AGE, PensioenoverzichtData } from '../types'
-import { useTranslation } from '../context/LanguageContext'
-import { InfoTooltip } from './InfoTooltip'
-import { InfoBox } from './InfoBox'
-import { calcPensioengrondslag, calcJaarruimte } from '../logic/pension'
-import { PensioenoverzichtUpload } from './PensioenoverzichtUpload'
+import { useState } from 'react';
+import { useTranslation } from '../context/LanguageContext';
+import { InfoTooltip } from './InfoTooltip';
+import { PensioenoverzichtUpload } from './PensioenoverzichtUpload';
+import { calcJaarruimte } from '../logic/pension';
+import type { SimParams } from '../types';
+import type { PensioenoverzichtData } from '../logic/parsePensioenoverzicht';
 
-interface Props {
-  params: SimParams
-  onChange: (params: SimParams) => void
-  pensioenoverzicht: PensioenoverzichtData | null
-  onPensioenoverzicht: (data: PensioenoverzichtData | null) => void
-  persist: boolean
-  onPersistChange: (enabled: boolean) => void
+interface InputPanelProps {
+  params: SimParams;
+  onChange: (params: SimParams) => void;
+  persist: boolean;
+  onPersistChange: (v: boolean) => void;
+  pensioenoverzicht: PensioenoverzichtData | null;
+  onPensioenoverzichtData: (data: PensioenoverzichtData | null) => void;
 }
 
-interface SliderInputProps {
-  label: string
-  tooltip: string
-  value: number
-  min: number
-  max: number
-  step: number
-  format: (v: number) => string
-  onChange: (v: number) => void
+const fmt = (n: number) =>
+  n.toLocaleString('nl-NL', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+
+function pct(v: number) {
+  return (v * 100).toFixed(1) + '%';
 }
 
-function SliderInput({ label, tooltip, value, min, max, step, format, onChange }: SliderInputProps) {
+interface SliderRowProps {
+  label: string;
+  help: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (v: number) => void;
+  displayValue: string;
+  minLabel: string;
+  maxLabel: string;
+  accent?: string;
+}
+
+function SliderRow({ label, help, min, max, step, value, onChange, displayValue, minLabel, maxLabel, accent = 'accent-blue-600' }: SliderRowProps) {
   return (
-    <div className="mb-4">
-      <div className="flex items-center justify-between mb-1">
-        <label className="flex items-center text-sm font-medium text-gray-700">
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-sm font-medium text-gray-700 flex items-center gap-0.5">
           {label}
-          <InfoTooltip text={tooltip} />
+          <InfoTooltip content={help} />
         </label>
-        <span className="text-sm font-semibold text-blue-700 tabular-nums">{format(value)}</span>
+        <span className={`text-sm font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 tabular-nums`}>
+          {displayValue}
+        </span>
       </div>
       <input
         type="range"
@@ -42,299 +54,298 @@ function SliderInput({ label, tooltip, value, min, max, step, format, onChange }
         max={max}
         step={step}
         value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        className="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+        onChange={(e) => onChange(Number(e.target.value))}
+        className={`w-full h-1.5 rounded-full appearance-none bg-gray-200 cursor-pointer ${accent}`}
       />
-      <div className="flex justify-between text-xs text-gray-400 mt-0.5">
-        <span>{format(min)}</span>
-        <span>{format(max)}</span>
+      <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <span>{minLabel}</span>
+        <span>{maxLabel}</span>
       </div>
     </div>
-  )
+  );
 }
 
-const euro = (v: number) => `€${Math.round(v).toLocaleString('nl-NL')}`
-const pct = (v: number) => `${(v * 100).toFixed(1)}%`
-
-export function InputPanel({ params, onChange, pensioenoverzicht, onPensioenoverzicht, persist, onPersistChange }: Props) {
-  const { t, lang } = useTranslation()
-  const [mobileOpen, setMobileOpen] = useState(true)
+export function InputPanel({
+  params,
+  onChange,
+  persist,
+  onPersistChange,
+  pensioenoverzicht,
+  onPensioenoverzichtData,
+}: InputPanelProps) {
+  const { t } = useTranslation();
+  const [collapsed, setCollapsed] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   function set<K extends keyof SimParams>(key: K, value: SimParams[K]) {
-    onChange({ ...params, [key]: value })
+    onChange({ ...params, [key]: value });
   }
 
-  function setAge(age: number) {
-    const years = Math.max(5, Math.min(45, AOW_AGE - age))
-    onChange({ ...params, startingAge: age, years })
-  }
-
-  const pensioengrondslag = calcPensioengrondslag(params.startingSalary, params.franchise)
-  const employerEuros = pensioengrondslag * params.employerPct
-  const employeeEuros = pensioengrondslag * params.employeePct
-  const { grossJaarruimte, pillar2Reduction, availableForThird } = calcJaarruimte(
-    params.startingSalary,
-    params.franchise,
-    employerEuros,
-    employeeEuros,
-  )
-  const currentThirdAnnual = params.extraSavingsMonthly * 12
-  const remainingJaarruimte = availableForThird - currentThirdAnnual
-  const overLimit = remainingJaarruimte < 0
+  const y1EmployerC = params.employerPct * Math.max(0, params.grossSalary - params.franchise);
+  const y1EmployeeC = params.employeePct * Math.max(0, params.grossSalary - params.franchise);
+  const jaarruimte = calcJaarruimte(params.grossSalary, params.franchise, y1EmployerC, y1EmployeeC);
+  const extraAnnual = params.extraSavingsMonthly * 12;
+  const jaarruimteRemaining = jaarruimte - extraAnnual;
+  const simYears = Math.max(5, Math.min(45, 68 - params.startingAge));
 
   return (
-    <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm sticky top-0 z-30 lg:sticky lg:top-6 lg:z-10 flex flex-col max-h-[100dvh] lg:max-h-[calc(100vh-3rem)]">
-
-      {/* Header — always visible, never scrolls away */}
-      <div className="px-5 pt-5 pb-3 flex items-center justify-between gap-2 flex-shrink-0">
-        <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 min-w-0 truncate">
-          {t.inputs.sectionTitle}
-        </h2>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Save toggle */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={persist}
-            title={t.inputs.persistToggle}
-            onClick={() => onPersistChange(!persist)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${
-              persist
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <span>💾</span>
-            <span className={`inline-flex h-3.5 w-7 items-center rounded-full transition-colors flex-shrink-0 ${
-              persist ? 'bg-blue-500' : 'bg-gray-300'
-            }`}>
-              <span className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
-                persist ? 'translate-x-[16px]' : 'translate-x-0.5'
-              }`} />
-            </span>
-          </button>
-          {/* Mobile expand/collapse */}
-          <button
-            type="button"
-            onClick={() => setMobileOpen(v => !v)}
-            className="lg:hidden flex items-center gap-1.5 text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-3 py-1.5 rounded-full transition-colors"
-            aria-expanded={mobileOpen}
-          >
-            <span>{mobileOpen ? '▲' : '▼'}</span>
-            <span>{mobileOpen
-              ? (lang === 'nl' ? 'Sluiten' : 'Close')
-              : (lang === 'nl' ? 'Aanpassen' : 'Adjust')
-            }</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Mini summary strip — mobile only, shown when collapsed */}
-      {!mobileOpen && (
-        <div className="lg:hidden px-5 pb-3 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-400 flex-shrink-0">
-          <span className="font-medium text-gray-600">{euro(params.startingSalary)}</span>
-          <span>·</span>
-          <span>{pct(params.employerPct)} / {pct(params.employeePct)}</span>
-          <span>·</span>
-          <span>{params.startingAge} {lang === 'nl' ? 'jr' : 'yr'}</span>
-        </div>
-      )}
-
-      {/* Main content — scrollable, hidden on mobile when collapsed */}
-      <div className={`px-5 pb-5 min-h-0 ${mobileOpen ? 'flex-1 overflow-y-auto' : 'hidden'} lg:flex-1 lg:overflow-y-auto lg:block`}>
-
-        <div data-guide-step="salary">
-          <SliderInput
-            label={t.inputs.salary}
-            tooltip={t.tooltips.salary}
-            value={params.startingSalary}
-            min={20_000} max={150_000} step={500}
-            format={euro}
-            onChange={v => set('startingSalary', v)}
-          />
-          <SliderInput
-            label={t.inputs.startingAge}
-            tooltip={t.tooltips.startingAge}
-            value={params.startingAge}
-            min={18} max={62} step={1}
-            format={v => {
-              const yrs = Math.max(5, Math.min(45, AOW_AGE - v))
-              return `${v} (${yrs} ${t.inputs.yearsUnit})`
-            }}
-            onChange={setAge}
-          />
-
-          {/* Single / partner toggle */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              {t.inputs.aowStatus}
-            </label>
-            <div className="flex items-center bg-gray-100 rounded-full p-0.5 w-fit">
-              {(['single', 'partner'] as const).map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => set('aowPartnerStatus', s)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-                    params.aowPartnerStatus === s
-                      ? 'bg-white text-blue-700 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {s === 'single' ? t.inputs.aowSingle : t.inputs.aowPartner}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-100 my-4" />
-        <div data-guide-step="contributions">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            {t.inputs.premiesTitle}
-          </h3>
-          <SliderInput
-            label={t.inputs.employerPct}
-            tooltip={t.tooltips.employerPct}
-            value={params.employerPct}
-            min={0} max={0.30} step={0.005}
-            format={pct}
-            onChange={v => set('employerPct', v)}
-          />
-          <SliderInput
-            label={t.inputs.employeePct}
-            tooltip={t.tooltips.employeePct}
-            value={params.employeePct}
-            min={0} max={0.20} step={0.005}
-            format={pct}
-            onChange={v => set('employeePct', v)}
-          />
-        </div>
-
-        <div className="border-t border-gray-100 my-4" />
-        <div data-guide-step="extra-savings" className="mb-1">
-          <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-            {t.inputs.extraSavings}
-            <InfoTooltip text={t.tooltips.extraSavings} />
-          </label>
-          <p className="text-xs text-gray-400 mb-2">{t.inputs.extraSavingsNote}</p>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">€</span>
-            <input
-              type="number"
-              min={0}
-              max={2000}
-              step={25}
-              value={params.extraSavingsMonthly}
-              onChange={e => set('extraSavingsMonthly', Math.max(0, Number(e.target.value)))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <span className="text-sm text-gray-400 whitespace-nowrap">/mnd</span>
-          </div>
-          {params.extraSavingsMonthly > 0 && (
-            <p className="text-xs text-green-700 mt-1.5">
-              = €{Math.round(params.extraSavingsMonthly * 12).toLocaleString('nl-NL')}/jaar
+    <aside
+      className="bg-white border border-gray-200 rounded-2xl shadow-sm sticky top-0 z-30 lg:sticky lg:top-6 lg:z-10 max-h-[100dvh] lg:max-h-[calc(100vh-3rem)] flex flex-col"
+      data-guide-step="salary"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+        <div>
+          <h2 className="font-semibold text-gray-800 text-sm">{t.input.title}</h2>
+          {collapsed && (
+            <p className="text-xs text-gray-400 mt-0.5">
+              {fmt(params.grossSalary)} · {pct(params.employerPct + params.employeePct)} · {params.startingAge}jr
             </p>
           )}
         </div>
+        <div className="flex items-center gap-2">
+          {/* Persist: disk icon + mini toggle */}
+          <button
+            type="button"
+            title={t.input.persistHelp}
+            onClick={() => onPersistChange(!persist)}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <span className={`text-base leading-none ${persist ? 'opacity-100' : 'opacity-30'}`}>💾</span>
+            <div className={`relative w-7 h-4 rounded-full transition-colors duration-200 ${persist ? 'bg-blue-500' : 'bg-gray-300'}`}>
+              <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${persist ? 'translate-x-3' : 'translate-x-0'}`} />
+            </div>
+          </button>
+          {/* Collapse icon */}
+          <button
+            type="button"
+            title={collapsed ? t.input.expand : t.input.collapse}
+            onClick={() => setCollapsed((v) => !v)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+          >
+            {collapsed ? '▼' : '▲'}
+          </button>
+        </div>
+      </div>
 
-        {/* Jaarruimte breakdown */}
-        <div className="mt-3 rounded-lg bg-gray-50 border border-gray-100 p-3">
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs font-semibold text-gray-700">{t.jaarruimte.title}</span>
-            <InfoTooltip text={t.jaarruimte.tooltip} />
+      {!collapsed && (
+        <div className="overflow-y-auto flex-1 p-4 space-y-5">
+          {/* Sim period badge */}
+          <div className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl px-3 py-2 text-xs">
+            <span className="text-2xl">📅</span>
+            <div>
+              <span className="font-semibold text-blue-800">{simYears} jaar</span>
+              <span className="text-blue-500"> simulatieperiode</span>
+              <p className="text-blue-400">tot AOW-leeftijd (68 jr)</p>
+            </div>
           </div>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between text-gray-500">
-              <span>{t.jaarruimte.grossSpace}</span>
-              <span className="font-mono tabular-nums">€{Math.round(grossJaarruimte).toLocaleString('nl-NL')}</span>
+
+          {/* Salary */}
+          <SliderRow
+            label={t.input.salary}
+            help={t.input.salaryHelp}
+            min={20000} max={200000} step={1000}
+            value={params.grossSalary}
+            onChange={(v) => set('grossSalary', v)}
+            displayValue={fmt(params.grossSalary)}
+            minLabel="€20k" maxLabel="€200k"
+          />
+
+          {/* Age */}
+          <SliderRow
+            label={t.input.age}
+            help={t.input.ageHelp}
+            min={18} max={66} step={1}
+            value={params.startingAge}
+            onChange={(v) => set('startingAge', v)}
+            displayValue={`${params.startingAge} jr`}
+            minLabel="18" maxLabel="66"
+          />
+
+          {/* Contributions */}
+          <div className="bg-gray-50 rounded-xl p-3 space-y-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Bijdragen</p>
+            <SliderRow
+              label={t.input.employerPct}
+              help={t.input.employerPctHelp}
+              min={0} max={0.25} step={0.001}
+              value={params.employerPct}
+              onChange={(v) => set('employerPct', v)}
+              displayValue={pct(params.employerPct)}
+              minLabel="0%" maxLabel="25%"
+            />
+            <SliderRow
+              label={t.input.employeePct}
+              help={t.input.employeePctHelp}
+              min={0} max={0.15} step={0.001}
+              value={params.employeePct}
+              onChange={(v) => set('employeePct', v)}
+              displayValue={pct(params.employeePct)}
+              minLabel="0%" maxLabel="15%"
+            />
+            <div className="flex justify-between text-xs pt-1 border-t border-gray-200">
+              <span className="text-gray-500">Totale bijdrage</span>
+              <span className="font-bold text-gray-800">{pct(params.employerPct + params.employeePct)}</span>
             </div>
-            <div className="flex justify-between text-gray-500">
-              <span>{t.jaarruimte.pillar2}</span>
-              <span className="font-mono tabular-nums text-red-500">− €{Math.round(pillar2Reduction).toLocaleString('nl-NL')}</span>
+          </div>
+
+          {/* Extra savings */}
+          <SliderRow
+            label={t.input.extraSavings}
+            help={t.input.extraSavingsHelp}
+            min={0} max={1000} step={10}
+            value={params.extraSavingsMonthly}
+            onChange={(v) => set('extraSavingsMonthly', v)}
+            displayValue={`${fmt(params.extraSavingsMonthly)}/mnd`}
+            minLabel="€0" maxLabel="€1.000"
+          />
+
+          {/* Jaarruimte card */}
+          <div className={`rounded-xl p-3 text-xs border ${jaarruimteRemaining < 0 && extraAnnual > 0 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+            <p className="font-semibold text-emerald-800 mb-2">{t.jaarruimte.title}</p>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">{t.jaarruimte.maxSpace}</span>
+                <span className="font-medium">{fmt(jaarruimte + y1EmployerC + y1EmployeeC)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">{t.jaarruimte.minus2nd}</span>
+                <span>−{fmt(y1EmployerC + y1EmployeeC)}</span>
+              </div>
+              <div className="flex justify-between font-semibold border-t border-emerald-200 pt-1">
+                <span>{t.jaarruimte.available}</span>
+                <span className="text-emerald-700">{fmt(jaarruimte)}</span>
+              </div>
+              {extraAnnual > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">{t.jaarruimte.usage}</span>
+                    <span>−{fmt(extraAnnual)}</span>
+                  </div>
+                  <div className={`flex justify-between font-semibold border-t border-emerald-200 pt-1 ${jaarruimteRemaining < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                    <span>{jaarruimteRemaining < 0 ? t.jaarruimte.exceeded : t.jaarruimte.remaining}</span>
+                    <span>{fmt(Math.abs(jaarruimteRemaining))}</span>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="flex justify-between font-semibold text-gray-800 border-t border-gray-200 pt-1">
-              <span>{t.jaarruimte.availableThird}</span>
-              <span className="font-mono tabular-nums text-green-700">€{Math.round(availableForThird).toLocaleString('nl-NL')}</span>
+            <p className="mt-2 text-gray-400 italic">{t.jaarruimte.disclaimer}</p>
+          </div>
+
+          {/* AOW */}
+          <div className="bg-sky-50 rounded-xl p-3 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">AOW</p>
+            <SliderRow
+              label={t.input.aow}
+              help={t.input.aowHelp}
+              min={0} max={2500} step={50}
+              value={params.aowMonthly}
+              onChange={(v) => set('aowMonthly', v)}
+              displayValue={`${fmt(params.aowMonthly)}/mnd`}
+              minLabel="€0" maxLabel="€2.500"
+            />
+            <div>
+              <p className="text-xs font-medium text-gray-700 mb-1.5">{t.input.aowPartner}</p>
+              <div className="flex gap-1 bg-white rounded-lg p-1 border border-sky-200">
+                {(['single', 'partner'] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => set('aowPartnerStatus', s)}
+                    className={`flex-1 text-xs py-1 rounded-md font-medium transition-all ${
+                      params.aowPartnerStatus === s
+                        ? 'bg-sky-500 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {s === 'single' ? t.input.aowPartnerSingle : t.input.aowPartnerWith}
+                  </button>
+                ))}
+              </div>
             </div>
-            {currentThirdAnnual > 0 && (
-              <>
-                <div className="flex justify-between text-gray-500 pt-0.5">
-                  <span>{t.jaarruimte.youSave}</span>
-                  <span className="font-mono tabular-nums">€{Math.round(currentThirdAnnual).toLocaleString('nl-NL')}</span>
-                </div>
-                <div className={`flex justify-between font-semibold ${overLimit ? 'text-red-600' : 'text-green-700'}`}>
-                  <span>{overLimit ? t.jaarruimte.overLimit : t.jaarruimte.remaining}</span>
-                  <span className="font-mono tabular-nums">
-                    {overLimit ? `− €${Math.round(-remainingJaarruimte).toLocaleString('nl-NL')}` : `€${Math.round(remainingJaarruimte).toLocaleString('nl-NL')}`}
-                  </span>
-                </div>
-              </>
+          </div>
+
+          {/* Advanced settings */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 w-full py-1"
+            >
+              <span className="flex-1 text-left">{t.input.advanced}</span>
+              <span>{showAdvanced ? '▲' : '▼'}</span>
+            </button>
+            {showAdvanced && (
+              <div className="mt-3 bg-gray-50 rounded-xl p-3 space-y-4">
+                <SliderRow
+                  label={t.input.salaryGrowth}
+                  help={t.input.salaryGrowthHelp}
+                  min={0} max={0.08} step={0.001}
+                  value={params.salaryGrowthRate}
+                  onChange={(v) => set('salaryGrowthRate', v)}
+                  displayValue={pct(params.salaryGrowthRate)}
+                  minLabel="0%" maxLabel="8%"
+                />
+                <SliderRow
+                  label={t.input.franchise}
+                  help={t.input.franchiseHelp}
+                  min={10000} max={30000} step={100}
+                  value={params.franchise}
+                  onChange={(v) => set('franchise', v)}
+                  displayValue={fmt(params.franchise)}
+                  minLabel="€10k" maxLabel="€30k"
+                />
+                <SliderRow
+                  label={t.input.franchiseGrowth}
+                  help={t.input.franchiseGrowthHelp}
+                  min={0} max={0.04} step={0.001}
+                  value={params.franchiseGrowthRate}
+                  onChange={(v) => set('franchiseGrowthRate', v)}
+                  displayValue={pct(params.franchiseGrowthRate)}
+                  minLabel="0%" maxLabel="4%"
+                />
+                <SliderRow
+                  label={t.input.inflation}
+                  help={t.input.inflationHelp}
+                  min={0} max={0.06} step={0.001}
+                  value={params.inflationRate}
+                  onChange={(v) => set('inflationRate', v)}
+                  displayValue={pct(params.inflationRate)}
+                  minLabel="0%" maxLabel="6%"
+                />
+                <SliderRow
+                  label={t.input.annuityRate}
+                  help={t.input.annuityRateHelp}
+                  min={0.005} max={0.04} step={0.0005}
+                  value={params.annuityRate}
+                  onChange={(v) => set('annuityRate', v)}
+                  displayValue={pct(params.annuityRate)}
+                  minLabel="0,5%" maxLabel="4%"
+                />
+                <SliderRow
+                  label={t.input.payoutYears}
+                  help={t.input.payoutYearsHelp}
+                  min={10} max={40} step={1}
+                  value={params.payoutYears}
+                  onChange={(v) => set('payoutYears', v)}
+                  displayValue={`${params.payoutYears} jr`}
+                  minLabel="10" maxLabel="40"
+                />
+              </div>
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-2 leading-tight">{t.jaarruimte.approxNote}</p>
-        </div>
 
-        <InfoBox title={t.infoBoxes.extraSavings.title} content={t.infoBoxes.extraSavings.content} />
-
-        <div className="border-t border-gray-100 my-4" />
-        <div data-guide-step="pensioenoverzicht-upload">
+          {/* Pensioenoverzicht upload */}
           <PensioenoverzichtUpload
             data={pensioenoverzicht}
-            onData={onPensioenoverzicht}
-            aowPartnerStatus={params.aowPartnerStatus}
+            onData={onPensioenoverzichtData}
+            error={uploadError}
+            onError={setUploadError}
           />
+
         </div>
-
-        <div className="border-t border-gray-100 my-4" />
-        <details className="group">
-          <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer list-none flex items-center justify-between mb-3 hover:text-gray-700">
-            <span>{t.inputs.advancedTitle}</span>
-            <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
-          </summary>
-
-          <SliderInput
-            label={t.inputs.salaryGrowth}
-            tooltip={t.tooltips.salaryGrowth}
-            value={params.salaryGrowthRate}
-            min={0} max={0.08} step={0.005}
-            format={pct}
-            onChange={v => set('salaryGrowthRate', v)}
-          />
-          <SliderInput
-            label={t.inputs.franchise}
-            tooltip={t.tooltips.franchise}
-            value={params.franchise}
-            min={10_000} max={25_000} step={100}
-            format={euro}
-            onChange={v => set('franchise', v)}
-          />
-          <SliderInput
-            label={t.inputs.franchiseGrowth}
-            tooltip={t.tooltips.franchiseGrowth}
-            value={params.franchiseGrowthRate}
-            min={0} max={0.04} step={0.005}
-            format={pct}
-            onChange={v => set('franchiseGrowthRate', v)}
-          />
-          <SliderInput
-            label={t.inputs.inflation}
-            tooltip={t.tooltips.inflation}
-            value={params.inflationRate}
-            min={0} max={0.06} step={0.005}
-            format={pct}
-            onChange={v => set('inflationRate', v)}
-          />
-          <SliderInput
-            label="AOW (maand)"
-            tooltip={t.incomeComparison.aowNote}
-            value={params.aowMonthly}
-            min={500} max={2_500} step={50}
-            format={euro}
-            onChange={v => set('aowMonthly', v)}
-          />
-        </details>
-      </div>
+      )}
     </aside>
-  )
+  );
 }

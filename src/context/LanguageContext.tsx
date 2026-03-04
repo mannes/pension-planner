@@ -1,32 +1,36 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
-import { Language, Translations, translations } from '../i18n'
+import React, { createContext, useContext, useState } from 'react';
+import { type Lang, type Translations, getTranslations } from '../i18n';
 
 interface LanguageContextValue {
-  lang: Language
-  setLang: (l: Language) => void
-  t: Translations
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  t: Translations;
 }
 
 const LanguageContext = createContext<LanguageContextValue>({
   lang: 'nl',
   setLang: () => {},
-  t: translations.nl,
-})
+  t: getTranslations('nl'),
+});
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const stored = localStorage.getItem('pension-lang') as Language | null
-  const [lang, setLangState] = useState<Language>(stored ?? 'nl')
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const stored = (typeof localStorage !== 'undefined'
+    ? localStorage.getItem('pension-lang')
+    : null) as Lang | null;
+  const [lang, setLangState] = useState<Lang>(stored ?? 'nl');
 
-  function setLang(l: Language) {
-    setLangState(l)
-    localStorage.setItem('pension-lang', l)
+  function setLang(l: Lang) {
+    setLangState(l);
+    localStorage.setItem('pension-lang', l);
   }
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t: translations[lang] }}>
+    <LanguageContext.Provider value={{ lang, setLang, t: getTranslations(lang) }}>
       {children}
     </LanguageContext.Provider>
-  )
+  );
 }
 
-export const useTranslation = () => useContext(LanguageContext)
+export function useTranslation() {
+  return useContext(LanguageContext);
+}

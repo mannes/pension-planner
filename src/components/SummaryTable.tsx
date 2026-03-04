@@ -1,238 +1,257 @@
-import { useState } from 'react'
-import { YearlyResult, RETURN_RATES } from '../types'
-import { toReal, estimateMonthlyPension, ANNUITY_RATE } from '../logic/simulation'
-import { InfoBox } from './InfoBox'
-import { useTranslation } from '../context/LanguageContext'
+import { useTranslation } from '../context/LanguageContext';
+import { InfoBox } from './InfoBox';
+import type { YearlyResult } from '../types';
+import { estimateMonthlyPension, toReal } from '../logic/simulation';
 
-interface Props {
-  results: YearlyResult[]
-  realMode: boolean
-  inflationRate: number
-  hasThirdPillar: boolean
+interface SummaryTableProps {
+  results: YearlyResult[];
+  showReal: boolean;
+  inflationRate: number;
+  selectedScenario: 'bad' | 'normal' | 'good';
+  onScenarioChange: (s: 'bad' | 'normal' | 'good') => void;
+  annuityRate: number;
+  payoutYears: number;
 }
 
-const euro = (v: number) =>
-  v.toLocaleString('nl-NL', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+const fmt = (n: number) =>
+  n.toLocaleString('nl-NL', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+
+const fmtCompact = (n: number) => {
+  if (n >= 1_000_000) return `€${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `€${(n / 1_000).toFixed(0)}k`;
+  return fmt(n);
+};
+
+interface ScenarioConfig {
+  key: 'bad' | 'normal' | 'good';
+  label: string;
+  rate: string;
+  gradient: string;
+  badgeColor: string;
+  barColor: string;
+  ringColor: string;
+}
 
 interface ScenarioCardProps {
-  label: string
-  returnRate: number
-  finalCapital2nd: number
-  finalCapital3rd: number
-  totalContributions: number
-  totalTaxSavings: number
-  totalNetCost: number
-  total3rdDeposited: number
-  total3rdTaxSavings: number
-  total3rdNetCost: number
-  monthlyPension: number
-  accent: string
-  bg: string
-  perMonth: string
-  endCapitalLabel: string
-  totalDepositedLabel: string
-  totalTaxLabel: string
-  netCostLabel: string
-  monthlyLabel: string
-  rateLabel: string
-  pillar3SectionLabel: string
-  hasThirdPillar: boolean
+  config: ScenarioConfig;
+  cap2: number;
+  cap3: number;
+  employerTotal: number;
+  employeeTotal: number;
+  taxSavingTotal: number;
+  netCostTotal: number;
+  extraTotal: number;
+  extraTaxSaving: number;
+  extraNetCost: number;
+  maxCapital: number;
+  selected?: boolean;
+  annuityRate: number;
+  payoutYears: number;
 }
 
 function ScenarioCard({
-  label, returnRate, finalCapital2nd, finalCapital3rd,
-  totalContributions, totalTaxSavings, totalNetCost,
-  total3rdDeposited, total3rdTaxSavings, total3rdNetCost,
-  monthlyPension,
-  accent, bg, perMonth, endCapitalLabel, totalDepositedLabel,
-  totalTaxLabel, netCostLabel, monthlyLabel, rateLabel,
-  pillar3SectionLabel, hasThirdPillar,
+  config,
+  cap2,
+  cap3,
+  employerTotal,
+  employeeTotal,
+  taxSavingTotal,
+  netCostTotal,
+  extraTotal,
+  extraTaxSaving,
+  extraNetCost,
+  maxCapital,
+  selected = false,
+  annuityRate,
+  payoutYears,
 }: ScenarioCardProps) {
-  const combinedCapital = finalCapital2nd + finalCapital3rd
+  const { t } = useTranslation();
+  const total = cap2 + cap3;
+  const monthlyPension = estimateMonthlyPension(total, annuityRate, payoutYears);
+  const barWidth = maxCapital > 0 ? Math.round((total / maxCapital) * 100) : 0;
 
   return (
-    <div className={`rounded-xl border-2 ${bg} p-4`}>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className={`font-bold text-sm ${accent}`}>{label}</h3>
-        <span className={`text-xs font-mono px-2 py-0.5 rounded-full bg-white ${accent}`}>
-          {(returnRate * 100).toFixed(0)}{rateLabel}
-        </span>
+    <div className={`rounded-2xl overflow-hidden border shadow-sm flex flex-col transition-all duration-200 ${selected ? `border-2 ${config.ringColor} shadow-md` : 'border-gray-200'}`}>
+      {/* Colored header */}
+      <div className={`${config.gradient} px-4 pt-4 pb-5`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${config.badgeColor}`}>
+            {config.label}
+          </span>
+          <span className="text-xs font-medium text-white/70">{config.rate}</span>
+        </div>
+        {/* Hero: monthly pension */}
+        <p className="text-3xl font-bold text-white mt-1">
+          {fmt(monthlyPension)}
+          <span className="text-sm font-normal text-white/70">/mnd</span>
+        </p>
+        <p className="text-xs text-white/70 mt-0.5">{t.summary.monthlyPension}</p>
+        {/* Capital bar */}
+        <div className="mt-3">
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-white/70">{t.summary.capitalTotal}</span>
+            <span className="font-semibold text-white">{fmtCompact(total)}</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-white/30 overflow-hidden">
+            <div
+              className={`h-full rounded-full ${config.barColor} transition-all duration-500`}
+              style={{ width: `${barWidth}%` }}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="text-2xl font-bold text-gray-900 mb-0.5">{euro(finalCapital2nd)}</div>
-      <div className="text-xs text-gray-500 mb-1">{endCapitalLabel}</div>
-      {hasThirdPillar && (
-        <div className="text-sm font-semibold text-purple-700 mb-0.5">
-          + {euro(finalCapital3rd)} <span className="text-xs font-normal text-gray-500">(3e pijler)</span>
+      {/* Body */}
+      <div className="bg-white px-4 py-3 flex-1 space-y-1.5 text-xs">
+        <div className="flex justify-between py-1 border-b border-gray-100">
+          <span className="text-gray-500">{t.summary.capital2nd}</span>
+          <span className="font-medium">{fmt(cap2)}</span>
         </div>
-      )}
-      {hasThirdPillar && (
-        <div className="text-xs font-bold text-gray-700 mb-3 border-t border-gray-200 pt-1">
-          = {euro(combinedCapital)} totaal
-        </div>
-      )}
-      {!hasThirdPillar && <div className="mb-3" />}
+        {cap3 > 0 && (
+          <div className="flex justify-between py-1 border-b border-gray-100">
+            <span className="text-gray-500">{t.summary.capital3rd}</span>
+            <span className="font-medium">{fmt(cap3)}</span>
+          </div>
+        )}
 
-      <div className="space-y-1.5 text-xs">
-        <div className="flex justify-between text-gray-600">
-          <span>{totalDepositedLabel}</span>
-          <span className="font-mono font-medium">{euro(totalContributions)}</span>
+        <p className="font-semibold text-gray-700 pt-1.5">{t.summary.deposits2nd}</p>
+        <div className="flex justify-between pl-3">
+          <span className="text-gray-400">{t.summary.employerGross}</span>
+          <span>{fmt(employerTotal)}</span>
         </div>
-        <div className="flex justify-between text-green-700">
-          <span>{totalTaxLabel}</span>
-          <span className="font-mono font-medium">{euro(totalTaxSavings)}</span>
+        <div className="flex justify-between pl-3">
+          <span className="text-gray-400">{t.summary.employeeGross}</span>
+          <span>{fmt(employeeTotal)}</span>
         </div>
-        <div className="flex justify-between text-gray-800 font-semibold border-t border-gray-200 pt-1.5">
-          <span>{netCostLabel}</span>
-          <span className="font-mono">{euro(totalNetCost)}</span>
+        <div className="flex justify-between pl-3">
+          <span className="text-emerald-600">{t.summary.taxSaving}</span>
+          <span className="text-emerald-600">−{fmt(taxSavingTotal)}</span>
+        </div>
+        <div className="flex justify-between pl-3 font-medium border-t border-gray-100 pt-1">
+          <span className="text-gray-600">{t.summary.netCost}</span>
+          <span>{fmt(netCostTotal)}</span>
         </div>
 
-        {hasThirdPillar && (
+        {extraTotal > 0 && (
           <>
-            <div className="pt-1.5 border-t border-gray-200">
-              <span className="font-semibold text-purple-700">{pillar3SectionLabel}</span>
+            <div className="flex justify-between pt-1.5 border-t border-gray-100">
+              <span className="font-semibold text-gray-700">{t.summary.deposits3rd}</span>
+              <span>{fmt(extraTotal)}</span>
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>{totalDepositedLabel}</span>
-              <span className="font-mono font-medium">{euro(total3rdDeposited)}</span>
+            <div className="flex justify-between pl-3">
+              <span className="text-emerald-600">{t.summary.taxSaving}</span>
+              <span className="text-emerald-600">−{fmt(extraTaxSaving)}</span>
             </div>
-            <div className="flex justify-between text-green-700">
-              <span>{totalTaxLabel}</span>
-              <span className="font-mono font-medium">{euro(total3rdTaxSavings)}</span>
-            </div>
-            <div className="flex justify-between text-gray-800 font-semibold border-t border-gray-200 pt-1.5">
-              <span>{netCostLabel}</span>
-              <span className="font-mono">{euro(total3rdNetCost)}</span>
+            <div className="flex justify-between pl-3 font-medium border-t border-gray-100 pt-1">
+              <span className="text-gray-600">{t.summary.netCost}</span>
+              <span>{fmt(extraNetCost)}</span>
             </div>
           </>
         )}
-
-        <div className="flex justify-between text-gray-800 font-semibold border-t border-gray-200 pt-1.5">
-          <span>{monthlyLabel}</span>
-          <span className="font-mono">{euro(monthlyPension)}{perMonth}</span>
-        </div>
       </div>
     </div>
-  )
+  );
 }
 
-export function SummaryTable({ results, realMode, inflationRate, hasThirdPillar }: Props) {
-  const { t } = useTranslation()
-  const [activeScenario, setActiveScenario] = useState<'Bad' | 'Normal' | 'Good'>('Normal')
+const SCENARIO_CONFIGS: ScenarioConfig[] = [
+  {
+    key: 'bad',
+    label: 'Pessimistisch',
+    rate: '2% rendement',
+    gradient: 'bg-gradient-to-br from-rose-500 to-rose-600',
+    badgeColor: 'bg-rose-700/40 text-white',
+    barColor: 'bg-white/80',
+    ringColor: 'border-rose-400',
+  },
+  {
+    key: 'normal',
+    label: 'Gemiddeld',
+    rate: '5% rendement',
+    gradient: 'bg-gradient-to-br from-blue-500 to-blue-600',
+    badgeColor: 'bg-blue-700/40 text-white',
+    barColor: 'bg-white/80',
+    ringColor: 'border-blue-400',
+  },
+  {
+    key: 'good',
+    label: 'Optimistisch',
+    rate: '8% rendement',
+    gradient: 'bg-gradient-to-br from-emerald-500 to-emerald-600',
+    badgeColor: 'bg-emerald-700/40 text-white',
+    barColor: 'bg-white/80',
+    ringColor: 'border-emerald-400',
+  },
+];
 
-  if (results.length === 0) return null
+export function SummaryTable({ results, showReal, inflationRate, selectedScenario, onScenarioChange, annuityRate, payoutYears }: SummaryTableProps) {
+  const { t } = useTranslation();
+  const activeIdx = SCENARIO_CONFIGS.findIndex((c) => c.key === selectedScenario);
 
-  const lastYear = results[results.length - 1]
-  const years = results.length
+  if (results.length === 0) return null;
 
-  const totals = results.reduce(
-    (acc, r) => ({
-      contributions:    acc.contributions    + r.totalAnnualContribution,
-      taxSavings:       acc.taxSavings       + r.taxSaving,
-      netCost:          acc.netCost          + r.netEmployeeCost,
-      extra3Deposited:  acc.extra3Deposited  + r.extraSavingsAnnual,
-      extra3TaxSavings: acc.extra3TaxSavings + r.extraSavingsTaxBenefit,
-      extra3NetCost:    acc.extra3NetCost    + r.extraSavingsNetCost,
-    }),
-    { contributions: 0, taxSavings: 0, netCost: 0, extra3Deposited: 0, extra3TaxSavings: 0, extra3NetCost: 0 }
-  )
+  const last = results[results.length - 1];
+  const years = results.length;
+  const real = showReal ? (v: number) => toReal(v, inflationRate, years) : (v: number) => v;
 
-  function getCapital2nd(key: 'Bad' | 'Normal' | 'Good') {
-    const nominal = lastYear[`capital${key}` as keyof YearlyResult] as number
-    return realMode ? toReal(nominal, years, inflationRate) : nominal
-  }
+  const employerTotal = results.reduce((s, r) => s + r.employerContribution, 0);
+  const employeeTotal = results.reduce((s, r) => s + r.employeeContribution, 0);
+  const taxSavingTotal = results.reduce((s, r) => s + r.taxSaving, 0);
+  const netCostTotal = employeeTotal - taxSavingTotal;
+  const extraTotal = results.reduce((s, r) => s + r.extraSavingsGross, 0);
+  const extraTaxSaving = results.reduce((s, r) => s + r.extraSavingsTaxSaving, 0);
+  const extraNetCost = extraTotal - extraTaxSaving;
 
-  function getCapital3rd(key: 'Bad' | 'Normal' | 'Good') {
-    const nominal = lastYear[`capital${key}Third` as keyof YearlyResult] as number
-    return realMode ? toReal(nominal, years, inflationRate) : nominal
-  }
+  const scenarios = [
+    { cap2: real(last.capital2Bad), cap3: real(last.capital3Bad) },
+    { cap2: real(last.capital2Normal), cap3: real(last.capital3Normal) },
+    { cap2: real(last.capital2Good), cap3: real(last.capital3Good) },
+  ];
 
-  const scenarios: Array<{
-    key: 'Bad' | 'Normal' | 'Good'
-    label: string
-    rate: number
-    accent: string
-    bg: string
-  }> = [
-    { key: 'Bad',    label: t.summary.badLabel,    rate: RETURN_RATES.bad,    accent: 'text-slate-600',   bg: 'border-slate-200 bg-slate-50' },
-    { key: 'Normal', label: t.summary.normalLabel, rate: RETURN_RATES.normal, accent: 'text-blue-700',    bg: 'border-blue-200 bg-blue-50' },
-    { key: 'Good',   label: t.summary.goodLabel,   rate: RETURN_RATES.good,   accent: 'text-emerald-700', bg: 'border-emerald-200 bg-emerald-50' },
-  ]
-
-  const cardProps = {
-    perMonth: t.summary.perMonth,
-    endCapitalLabel: t.summary.endCapital,
-    totalDepositedLabel: t.summary.totalDeposited,
-    totalTaxLabel: t.summary.totalTaxSavings,
-    netCostLabel: t.summary.yourNetCost,
-    monthlyLabel: t.summary.monthlyPension,
-    rateLabel: `%/${t.inputs.yearsUnit.slice(0, 4)}`,
-    pillar3SectionLabel: t.summary.pillar3Section,
-    total3rdDeposited: totals.extra3Deposited,
-    total3rdTaxSavings: totals.extra3TaxSavings,
-    total3rdNetCost: totals.extra3NetCost,
-    hasThirdPillar,
-  }
+  const maxCapital = Math.max(...scenarios.map((s) => s.cap2 + s.cap3));
+  const sharedProps = { employerTotal, employeeTotal, taxSavingTotal, netCostTotal, extraTotal, extraTaxSaving, extraNetCost, maxCapital, annuityRate, payoutYears };
 
   return (
-    <section data-guide-step="results" className="bg-white rounded-2xl border-2 border-blue-200 shadow-md p-5">
-      <div className="mb-1">
-        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-          {t.summary.title(years)}
-        </h2>
-        <p className="text-xs text-gray-500 mt-0.5">
-          {realMode ? t.summary.subtitleReal : t.summary.subtitleNominal}
-        </p>
-      </div>
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5" data-guide-step="results">
+      <h2 className="font-semibold text-gray-800 mb-4 text-base">{t.summary.title}</h2>
 
-      {/* Scenario tab selector — mobile only */}
-      <div className="md:hidden flex rounded-full bg-gray-100 p-0.5 mt-4">
-        {scenarios.map(s => (
+      {/* Mobile: segmented control */}
+      <div className="flex md:hidden gap-1 bg-gray-100 rounded-xl p-1 mb-4">
+        {SCENARIO_CONFIGS.map((cfg) => (
           <button
-            key={s.key}
+            key={cfg.key}
             type="button"
-            onClick={() => setActiveScenario(s.key)}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-full transition-all ${
-              activeScenario === s.key
-                ? `bg-white shadow-sm ${s.accent}`
-                : 'text-gray-500 hover:text-gray-700'
+            onClick={() => onScenarioChange(cfg.key)}
+            className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all ${
+              selectedScenario === cfg.key ? 'bg-white shadow text-gray-900' : 'text-gray-500'
             }`}
           >
-            {s.label}
+            {cfg.label}
           </button>
         ))}
       </div>
 
-      {/* Cards: single card on mobile, grid of 3 on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-        {scenarios.map(s => (
-          <div key={s.key} className={s.key === activeScenario ? 'md:block' : 'hidden md:block'}>
-            <ScenarioCard
-              label={s.label}
-              returnRate={s.rate}
-              finalCapital2nd={getCapital2nd(s.key)}
-              finalCapital3rd={getCapital3rd(s.key)}
-              totalContributions={totals.contributions}
-              totalTaxSavings={totals.taxSavings}
-              totalNetCost={totals.netCost}
-              monthlyPension={estimateMonthlyPension(getCapital2nd(s.key) + getCapital3rd(s.key), ANNUITY_RATE)}
-              accent={s.accent}
-              bg={s.bg}
-              {...cardProps}
-            />
-          </div>
+      {/* Mobile: single card */}
+      <div className="md:hidden">
+        <ScenarioCard config={SCENARIO_CONFIGS[activeIdx]} {...scenarios[activeIdx]} {...sharedProps} selected />
+      </div>
+
+      {/* Desktop: all 3 — click to select */}
+      <div className="hidden md:grid grid-cols-3 gap-4">
+        {SCENARIO_CONFIGS.map((cfg, i) => (
+          <button
+            key={cfg.key}
+            type="button"
+            onClick={() => onScenarioChange(cfg.key)}
+            className="text-left focus:outline-none rounded-2xl"
+          >
+            <ScenarioCard config={cfg} {...scenarios[i]} {...sharedProps} selected={selectedScenario === cfg.key} />
+          </button>
         ))}
       </div>
 
-      <div className="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
-        <strong>📌 {t.summary.pillarsNote}</strong>
-      </div>
-
-      <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-        ⚠️ {t.summary.disclaimer}
-      </div>
-
-      <InfoBox title={t.infoBoxes.pillars.title} content={t.infoBoxes.pillars.content} />
-    </section>
-  )
+      <p className="text-xs text-gray-400 mt-4 italic">{t.summary.disclaimer}</p>
+      <p className="text-xs text-blue-600 mt-1">{t.summary.pillarsNote}</p>
+      <InfoBox title={t.infoBoxes.resultCapital.title} content={t.infoBoxes.resultCapital.content} />
+    </div>
+  );
 }

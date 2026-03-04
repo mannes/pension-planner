@@ -1,97 +1,102 @@
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer, ReferenceLine
-} from 'recharts'
-import { YearlyResult } from '../types'
-import { toReal } from '../logic/simulation'
-import { InfoBox } from './InfoBox'
-import { InfoTooltip } from './InfoTooltip'
-import { useTranslation } from '../context/LanguageContext'
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts';
+import { useTranslation } from '../context/LanguageContext';
+import type { YearlyResult } from '../types';
+import { toReal } from '../logic/simulation';
 
-interface Props {
-  results: YearlyResult[]
-  realMode: boolean
-  inflationRate: number
+interface CapitalChartProps {
+  results: YearlyResult[];
+  showReal: boolean;
+  inflationRate: number;
 }
 
-const euroK = (v: number) => `€${(v / 1_000).toFixed(0)}k`
+const fmt = (n: number) =>
+  n.toLocaleString('nl-NL', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
-function formatEuro(v: number) {
-  if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(2)}M`
-  if (v >= 1_000) return `€${(v / 1_000).toFixed(0)}k`
-  return `€${v.toFixed(0)}`
-}
+export function CapitalChart({ results, showReal, inflationRate }: CapitalChartProps) {
+  const { t } = useTranslation();
 
-function CustomTooltip({ active, payload, label }: {
-  active?: boolean
-  payload?: Array<{ name: string; value: number; color: string }>
-  label?: number
-}) {
-  if (!active || !payload?.length) return null
+  const data = results.map((r) => {
+    const factor = showReal ? (v: number) => toReal(v, inflationRate, r.year) : (v: number) => v;
+    return {
+      age: r.age,
+      [t.chart.bad]: Math.round(factor(r.capital2Bad + r.capital3Bad)),
+      [t.chart.normal]: Math.round(factor(r.capital2Normal + r.capital3Normal)),
+      [t.chart.good]: Math.round(factor(r.capital2Good + r.capital3Good)),
+    };
+  });
+
+  const midAge = results.length > 0
+    ? results[Math.floor(results.length / 2)]?.age
+    : undefined;
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs">
-      <p className="font-semibold text-gray-800 mb-1.5">Jaar {label}</p>
-      {payload.map(p => (
-        <div key={p.name} className="flex justify-between gap-4 mb-0.5">
-          <span style={{ color: p.color }}>{p.name}</span>
-          <span className="font-mono font-semibold" style={{ color: p.color }}>
-            {formatEuro(p.value)}
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5" data-guide-step="2">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-gray-800">{t.chart.title}</h2>
+        {showReal && (
+          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+            {t.real}
           </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-export function CapitalChart({ results, realMode, inflationRate }: Props) {
-  const { t } = useTranslation()
-
-  const data = results.map(r => ({
-    year: r.year,
-    [t.capitalChart.bad]:    Math.round(realMode ? toReal(r.capitalBad,    r.year, inflationRate) : r.capitalBad),
-    [t.capitalChart.normal]: Math.round(realMode ? toReal(r.capitalNormal, r.year, inflationRate) : r.capitalNormal),
-    [t.capitalChart.good]:   Math.round(realMode ? toReal(r.capitalGood,   r.year, inflationRate) : r.capitalGood),
-  }))
-
-  const midYear = Math.round(results.length / 2)
-
-  return (
-    <section data-guide-step="capital-chart" className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <div className="flex items-center gap-2 mb-1">
-        <h2 className="text-base font-bold text-gray-900">{t.capitalChart.title}</h2>
-        <InfoTooltip text={t.tooltips.nominalVsReal} />
+        )}
       </div>
-      <p className="text-xs text-gray-500 mb-4">
-        {realMode ? t.capitalChart.subtitleReal : t.capitalChart.subtitleNominal}
-      </p>
-
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
-            dataKey="year"
+            dataKey="age"
+            label={{ value: t.chart.year, position: 'insideBottom', offset: -2 }}
             tick={{ fontSize: 11 }}
-            label={{ value: t.capitalChart.yearLabel, position: 'insideBottom', offset: -2, fontSize: 11 }}
           />
-          <YAxis tickFormatter={euroK} tick={{ fontSize: 11 }} width={55} />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-            formatter={(value) => <span className="text-gray-700">{value}</span>}
+          <YAxis
+            tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`}
+            tick={{ fontSize: 11 }}
           />
-          <Line type="monotone" dataKey={t.capitalChart.bad}
-            stroke="#94a3b8" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-          <Line type="monotone" dataKey={t.capitalChart.normal}
-            stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-          <Line type="monotone" dataKey={t.capitalChart.good}
-            stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-          {midYear > 0 && midYear < results.length && (
-            <ReferenceLine x={midYear} stroke="#e2e8f0" strokeDasharray="4 2"
-              label={{ value: `${midYear}j`, fontSize: 10, fill: '#94a3b8' }} />
+          <Tooltip
+            formatter={(value: number, name: string) => [fmt(value), name]}
+            labelFormatter={(label) => `Leeftijd ${label}`}
+          />
+          <Legend />
+          {midAge !== undefined && (
+            <ReferenceLine
+              x={midAge}
+              stroke="#94a3b8"
+              strokeDasharray="4 4"
+              label={{ value: t.chart.midpoint, position: 'top', fontSize: 10, fill: '#94a3b8' }}
+            />
           )}
+          <Line
+            type="monotone"
+            dataKey={t.chart.bad}
+            stroke="#ef4444"
+            strokeWidth={2}
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey={t.chart.normal}
+            stroke="#3b82f6"
+            strokeWidth={2.5}
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey={t.chart.good}
+            stroke="#22c55e"
+            strokeWidth={2}
+            dot={false}
+          />
         </LineChart>
       </ResponsiveContainer>
-
-      <InfoBox title={t.infoBoxes.returnScenarios.title} content={t.infoBoxes.returnScenarios.content} />
-    </section>
-  )
+    </div>
+  );
 }

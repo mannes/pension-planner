@@ -2,30 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom range slider styling for cross-browser consistency */
+/* Custom range slider */
 input[type='range'] {
-  @apply cursor-pointer;
+  @apply w-full cursor-pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: #e5e7eb;
+  outline: none;
 }
 
 input[type='range']::-webkit-slider-thumb {
-  @apply appearance-none w-4 h-4 rounded-full bg-blue-600 cursor-pointer shadow-sm;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
   border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(59,130,246,0.35);
 }
 
 input[type='range']::-moz-range-thumb {
-  @apply w-4 h-4 rounded-full bg-blue-600 cursor-pointer border-2 border-white;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
 
-/* Guide step highlighting */
+/* Guide highlight animation */
 .guide-highlighted {
-  box-shadow: 0 0 0 3px #3b82f6, 0 0 0 8px rgba(59, 130, 246, 0.2) !important;
-  border-radius: 1rem;
-  position: relative;
-  z-index: 1;
+  outline: 3px solid #3b82f6;
+  outline-offset: 6px;
+  border-radius: 12px;
   animation: guide-pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes guide-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px #3b82f6, 0 0 0 8px rgba(59, 130, 246, 0.2); }
-  50%       { box-shadow: 0 0 0 3px #3b82f6, 0 0 0 16px rgba(59, 130, 246, 0.08); }
+  0%, 100% { outline-color: #3b82f6; box-shadow: 0 0 0 0 rgba(59,130,246,0.3); }
+  50% { outline-color: #93c5fd; box-shadow: 0 0 0 6px rgba(59,130,246,0.1); }
 }

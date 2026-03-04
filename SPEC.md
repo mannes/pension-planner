@@ -14,7 +14,7 @@ An educational, interactive browser tool to simulate and compare pension capital
 - **Employee contribution**: a percentage of *pensionable salary*
 - **Pensionable salary** (pensioengrondslag): gross salary minus the *franchise*
   - The franchise (AOW-franchise) is the amount excluded from pension accrual because the Dutch state pension (AOW) covers it
-  - 2024 franchise: ~€17,545 (update annually)
+  - 2026 franchise: €19,172 (Centraal Aanspreekpunt Pensioenen, V&A 25-008)
   - `pensioengrondslag = max(0, bruto_jaarsalaris - franchise)`
 - Total annual contribution = `(employer_pct + employee_pct) * pensioengrondslag`
 
@@ -75,26 +75,29 @@ Users can upload a JSON export from [mijnpensioenoverzicht.nl](https://www.mijnp
 - Net cost to employee: `net_cost = employee_contribution * (1 - marginal_tax_rate)`
 - Visualization shows: gross contribution → tax saving → net cost → employer contribution → total funded → leverage ratio
 
-### Dutch Income Tax (Box 1, 2024 rates)
+### Dutch Income Tax (Box 1, 2026 rates)
 
 **Working age (below AOW-leeftijd):**
 
-| Bracket | Income range    | Rate   |
-|---------|-----------------|--------|
-| 1       | €0 – €75,518    | 36.97% |
-| 2       | > €75,518       | 49.50% |
-
-Marginal rate = rate of highest bracket reached. Pension contributions reduce taxable income.
-
-**Pension age (at or above AOW-leeftijd):**
-
-AOW recipients no longer pay the AOW premium (~17.9%), so bracket 1 is split:
+From 2026, three brackets apply for working-age taxpayers:
 
 | Bracket | Income range          | Rate   |
 |---------|-----------------------|--------|
-| 1a      | €0 – ~€40,021         | 19.07% |
-| 1b      | ~€40,021 – €75,518    | 36.97% |
-| 2       | > €75,518             | 49.50% |
+| 1       | €0 – €38,883          | 35.75% |
+| 2       | €38,883 – €78,426     | 37.56% |
+| 3       | > €78,426             | 49.50% |
+
+Marginal rate = rate of highest bracket reached. Pension contributions reduce taxable income.
+
+**Pension age (at or above AOW-leeftijd, ≥68):**
+
+AOW recipients no longer pay the AOW premium (~17.9%), so bracket 1 is reduced:
+
+| Bracket | Income range          | Rate   |
+|---------|-----------------------|--------|
+| 1       | €0 – €38,883          | 17.85% |
+| 2       | €38,883 – €78,426     | 37.56% |
+| 3       | > €78,426             | 49.50% |
 
 These retirement-age rates are used when converting accumulated capital to net pension income.
 
@@ -127,15 +130,15 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 |-------------------------|---------------|----------------------------------------------------------------|
 | Starting gross salary   | €60,000       | Annual bruto salary at year 0                                  |
 | Starting age            | 32            | Simulation period = max(5, min(45, AOW_AGE − startingAge))    |
-| Simulation period       | 35 years      | Derived from age; AOW age = 67                                 |
+| Simulation period       | 36 years      | Derived from age; AOW age = 68                                 |
 | Salary growth rate      | 2%/year       | Annual raise                                                   |
 | Employer contribution % | 1.5%          | % of pensioengrondslag                                         |
 | Employee contribution % | 2.5%          | % of pensioengrondslag                                         |
 | Extra savings/month     | €0            | 3rd pillar; tax-deductible at marginal rate                    |
-| AOW franchise           | €17,545       | Updated annually by government                                 |
+| AOW franchise           | €19,172       | 2026 value (Centraal Aanspreekpunt Pensioenen, V&A 25-008)    |
 | Franchise growth rate   | 1.5%/year     | Approximate CPI-linked growth                                  |
 | Inflation rate          | 2%/year       | Used for real-value toggle                                     |
-| AOW monthly (gross)     | €1,400        | Gross bruto; retirement tax applied on top                     |
+| AOW monthly (gross)     | €1,650        | Approx. alleenstaand Jan 2026 (SVB); retirement tax applied    |
 | AOW partner status      | `'single'`    | `'single'` (alleenstaand) or `'partner'` (samenwonend); affects AOW amount; auto-fills from imported file |
 | Return scenarios        | 2% / 5% / 8% | Bad / Normal / Good (accumulation only)                        |
 | Annuity rate            | 1.5%          | Fixed; used for capital → monthly pension                      |
@@ -144,16 +147,27 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 
 ## Output / Visualizations
 
-### 1. Results Summary (prominent, at top)
+Content area card order (top to bottom):
+1. **Results Summary**
+2. Income Comparison
+3. Tax Leverage
+4. Contribution Breakdown
+5. Capital Chart
+6. Pension Glossary
+
+### 1. Results Summary (first card)
 - 3 scenario cards: bad / normal / good
-- Per card:
-  - Final 2nd pillar capital (big number), final 3rd pillar capital (if any), combined total
+- Per card (colored gradient header — rose / blue / emerald):
+  - Hero: estimated monthly pension (large white text)
+  - Capital progress bar relative to best scenario
+  - Final 2nd pillar capital, final 3rd pillar capital (if any)
   - **2nd pillar deposits**: total employer+employee gross, total tax savings, net cost to employee
-  - **3rd pillar deposits** (if configured): total deposited, tax savings, net cost — shown separately so user can see full input picture
-  - Estimated monthly pension (using 1.5% annuity rate on combined capital)
-- Disclaimer notes: accumulation vs payout rate distinction; already-accrued rights not included; link to mijnpensioenoverzicht.nl
-- Blue note: "This is 2nd pillar only — AOW and 3rd pillar come on top"
-- Expandable InfoBox: "AOW & the 3 pillars"
+  - **3rd pillar deposits** (if configured): one combined row (total deposited), tax savings, net cost
+- Mobile: segmented control (3-button pill) to select Bad / Normal / Good; only selected card shown
+- Desktop (`md+`): all 3 cards in a grid
+- Disclaimer notes: accumulation vs payout rate distinction
+- Blue note: "Pillar 2 = employer pension | Pillar 3 = personal savings"
+- Expandable InfoBox: capital calculation explanation
 
 ### 2. Income Comparison
 - Reference salary depends on mode:
@@ -167,7 +181,7 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
     - Label: "AOW-uitkering (alleenstaand/samenwonend)" based on selected status
     - Without imported file: label appends "(schatting)"
     - With imported file: label is clean (no "schatting"); bar note says "Uit mijnpensioenoverzicht.nl (prognose)"
-- Gross total → minus retirement-age Box 1 tax (19.07%/36.97%/49.50%) → **net monthly pension**
+- Gross total → minus retirement-age Box 1 tax (17.85%/37.56%/49.50%) → **net monthly pension**
 - Replacement rate = net pension / net reference salary (net/net comparison)
 - Gauge visualization with status: Good (≥70%) / Moderate (50–69%) / Low (<50%)
 - Target shown on gauge: 70–80%
@@ -180,14 +194,23 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 - When real mode is active: note explaining year-1 values are in current euros (not affected by toggle)
 - Expandable InfoBoxes: tax leverage, pensioengrondslag, Dutch tax brackets
 
-### 4. Capital Chart
+### 4. Contribution Breakdown
+- Stacked bar chart: employer / employee gross / tax saving per year
+- Always shows full simulation period (no range selector)
+
+### 5. Capital Chart (last card)
 - Line chart: 3 scenarios over full simulation period
 - Nominal / Real toggle applies
 - Midpoint reference line
 
-### 5. Contribution Breakdown
-- Stacked bar chart: employer / employee gross / tax saving per year
-- Always shows full simulation period (no range selector)
+### 6. Pension Glossary
+- Collapsible card (collapsed by default)
+- Header: title, subtitle, term count badge
+- When open: all entries shown at once (no accordion) — term as bold heading, definition below
+- 17 terms in NL; 16 terms in EN (alphabetical within each language)
+- Definition format: mini-markdown (`**bold**`, `• bullets`, `\n\n` paragraphs)
+- Fully bilingual via `t.glossary.title / subtitle / entries[]`
+- Terms covered: AOW, Annuïteit, Banksparen, Belastingschijven, DC-regeling, Factor A, Fiscale hefboom, Franchise, Jaarruimte, Lijfrente, Nominaal vs. reëel, Pensioengrondslag, Pijler 1/2/3, Rendement, Vervangingspercentage
 
 ---
 
@@ -224,17 +247,24 @@ Compounding formula: `capital[year] = capital[year-1] * (1 + rate) + contributio
 - "Lees meer" / "Sluiten" come from `t.infoBox.readMore` / `t.infoBox.close` — fully translated NL/EN
 
 ### Educational Help System
-1. **InfoTooltip** — `(?)` icon on every input label, hover/click popover
-2. **InfoBox** — collapsible deeper explanation panels at relevant sections
+1. **InfoTooltip** — outlined `i` badge on every input label; click/hover opens arrow-caret popover with blue fill when open
+2. **InfoBox** — collapsible panel with animated `max-height` transition and rotating chevron `▾`; content uses mini-markdown renderer
+3. **GlossaryPanel** — standalone card at bottom of page with all 15–16 terms fully expanded when opened
 
-Key InfoBoxes:
+Mini-markdown format used in InfoBox and Glossary content:
+- `\n\n` → paragraph break
+- `• text` lines → bullet list (`<ul>` with `•` marker span)
+- `**text**` → `<strong>`
+
+Key InfoBoxes (all bilingual NL/EN):
 - Pensioengrondslag / Pension base
 - Tax leverage: why gross salary matters
-- Dutch tax brackets (Box 1, working age)
+- Dutch tax brackets (Box 1, working age + retirement age)
 - Return scenarios explained
 - AOW and the three pillars
-- What's in the result capital (2nd pillar only)
+- Capital calculation (2nd pillar only, annuity conversion)
 - 3rd pillar / extra savings explained
+- Retirement cost changes (why 70% suffices)
 
 ### AI Slop Warning
 - Amber banner at top of page
@@ -295,7 +325,7 @@ Automated test suite using **Vitest** (`npm test`), covering all pure logic func
 
 | File | Tests | Coverage |
 |------|-------|----------|
-| `src/logic/__tests__/tax.test.ts` | 29 | `calculateTax`, `getMarginalRate`, `calculateTaxWithPensionDeduction`, `calcTaxSaving`, `calculateRetirementTax` |
+| `src/logic/__tests__/tax.test.ts` | 36 | `calculateTax`, `getMarginalRate`, `calculateTaxWithPensionDeduction`, `calcTaxSaving`, `calculateRetirementTax` |
 | `src/logic/__tests__/pension.test.ts` | 27 | `calcPensioengrondslag`, `calcJaarruimte`, `calcContributions` |
 | `src/logic/__tests__/simulation.test.ts` | 34 | `runSimulation` (2nd + 3rd pillar, edge cases), `toReal`, `estimateMonthlyPension` |
 | **Total** | **90** | |
@@ -373,9 +403,10 @@ pension-planner/
         ├── FirstTimeGuide.tsx    # 6-step guide; bottom sheet on mobile, corner panel on desktop
         ├── InputPanel.tsx        # Sliders + extra savings + PensioenoverzichtUpload at bottom
         ├── PensioenoverzichtUpload.tsx  # File upload UI for pensioenoverzicht.nl JSON
-        ├── SummaryTable.tsx      # Results at top (2nd + 3rd pillar, 3 scenarios)
-        ├── TaxLeveragePanel.tsx  # Year-1 waterfall + leverage ratio
-        ├── IncomeComparisonPanel.tsx  # Gross→net pension, retirement tax, replacement rate
-        ├── CapitalChart.tsx      # Line chart: 3 scenarios over time
-        └── ContributionBreakdown.tsx  # Stacked bar, full period always shown
+        ├── SummaryTable.tsx      # Results (first card): gradient scenario cards, mobile segmented control
+        ├── IncomeComparisonPanel.tsx  # Gross→net pension, retirement tax, replacement rate gauge
+        ├── TaxLeveragePanel.tsx  # Year-1 waterfall + leverage ratio callout
+        ├── ContributionBreakdown.tsx  # Stacked bar, full period always shown
+        ├── CapitalChart.tsx      # Line chart: 3 scenarios over time (last chart card)
+        └── GlossaryPanel.tsx     # Collapsible dictionary: 15–16 terms, all shown when open
 ```

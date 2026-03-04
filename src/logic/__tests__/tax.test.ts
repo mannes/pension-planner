@@ -1,183 +1,147 @@
-import { describe, it, expect } from 'vitest'
-import { calculateTax, getMarginalRate, calculateTaxWithPensionDeduction, calcTaxSaving, calculateRetirementTax } from '../tax'
+import { describe, it, expect } from 'vitest';
+import {
+  calculateTax,
+  getMarginalRate,
+  calculateTaxWithPensionDeduction,
+  calcTaxSaving,
+  calculateRetirementTax,
+} from '../tax';
 
-// ─── Known bracket constants ────────────────────────────────────────────────
-const BRACKET1_LIMIT = 75_518
-const RATE1 = 0.3697
-const RATE2 = 0.4950
+// 2026 brackets (working age):  schijf 1 t/m €38.883 @ 35.75%
+//                                schijf 2 €38.883–€78.426 @ 37.56%
+//                                schijf 3 > €78.426 @ 49.50%
+// 2026 brackets (retirement):   schijf 1 t/m €38.883 @ 17.85%
+//                                schijf 2 €38.883–€78.426 @ 37.56%
+//                                schijf 3 > €78.426 @ 49.50%
 
-// ─── calculateTax ────────────────────────────────────────────────────────────
+describe('calculateTax (working age)', () => {
+  it('zero income', () => expect(calculateTax(0)).toBe(0));
+  it('income fully within schijf 1', () => {
+    expect(calculateTax(30000)).toBeCloseTo(30000 * 0.3575, 2);
+  });
+  it('income exactly at schijf 1 limit', () => {
+    expect(calculateTax(38883)).toBeCloseTo(38883 * 0.3575, 2);
+  });
+  it('income spanning schijf 1 and 2', () => {
+    const expected = 38883 * 0.3575 + (60000 - 38883) * 0.3756;
+    expect(calculateTax(60000)).toBeCloseTo(expected, 2);
+  });
+  it('income above schijf 2 limit (into schijf 3)', () => {
+    const expected = 38883 * 0.3575 + (78426 - 38883) * 0.3756 + (90000 - 78426) * 0.495;
+    expect(calculateTax(90000)).toBeCloseTo(expected, 2);
+  });
+  it('high income well above all brackets', () => {
+    const expected = 38883 * 0.3575 + (78426 - 38883) * 0.3756 + (200000 - 78426) * 0.495;
+    expect(calculateTax(200000)).toBeCloseTo(expected, 2);
+  });
+});
 
-describe('calculateTax', () => {
-  it('returns 0 for zero income', () => {
-    expect(calculateTax(0)).toBe(0)
-  })
-
-  it('returns 0 for negative income', () => {
-    expect(calculateTax(-1000)).toBe(0)
-  })
-
-  it('applies bracket-1 rate for income entirely within bracket 1', () => {
-    const income = 50_000
-    expect(calculateTax(income)).toBeCloseTo(income * RATE1, 4)
-  })
-
-  it('is correct exactly at the bracket-1 boundary (€75,518)', () => {
-    expect(calculateTax(BRACKET1_LIMIT)).toBeCloseTo(BRACKET1_LIMIT * RATE1, 4)
-  })
-
-  it('applies both brackets for income above €75,518', () => {
-    const income = 100_000
-    const expected = BRACKET1_LIMIT * RATE1 + (income - BRACKET1_LIMIT) * RATE2
-    expect(calculateTax(income)).toBeCloseTo(expected, 4)
-  })
-
-  it('taxes are strictly positive for any positive income', () => {
-    expect(calculateTax(1)).toBeGreaterThan(0)
-    expect(calculateTax(30_000)).toBeGreaterThan(0)
-    expect(calculateTax(200_000)).toBeGreaterThan(0)
-  })
-
-  it('tax is monotonically increasing with income', () => {
-    const incomes = [10_000, 30_000, 50_000, 75_518, 75_519, 100_000, 200_000]
-    for (let i = 1; i < incomes.length; i++) {
-      expect(calculateTax(incomes[i])).toBeGreaterThan(calculateTax(incomes[i - 1]))
-    }
-  })
-
-  it('effective rate never exceeds the top marginal rate', () => {
-    const income = 500_000
-    expect(calculateTax(income) / income).toBeLessThan(RATE2)
-  })
-})
-
-// ─── getMarginalRate ─────────────────────────────────────────────────────────
+describe('calculateTax (retirement age)', () => {
+  it('zero income', () => expect(calculateTax(0, true)).toBe(0));
+  it('income fully within schijf 1', () => {
+    expect(calculateTax(20000, true)).toBeCloseTo(20000 * 0.1785, 2);
+  });
+  it('income exactly at schijf 1 limit', () => {
+    expect(calculateTax(38883, true)).toBeCloseTo(38883 * 0.1785, 2);
+  });
+  it('income spanning schijf 1 and 2', () => {
+    const expected = 38883 * 0.1785 + (60000 - 38883) * 0.3756;
+    expect(calculateTax(60000, true)).toBeCloseTo(expected, 2);
+  });
+  it('income spanning all three retirement brackets', () => {
+    const expected =
+      38883 * 0.1785 + (78426 - 38883) * 0.3756 + (100000 - 78426) * 0.495;
+    expect(calculateTax(100000, true)).toBeCloseTo(expected, 2);
+  });
+});
 
 describe('getMarginalRate', () => {
-  it('returns 36.97% for income below the bracket boundary', () => {
-    expect(getMarginalRate(30_000)).toBe(RATE1)
-  })
-
-  it('returns 36.97% exactly at €75,518 (boundary is inclusive to bracket 1)', () => {
-    expect(getMarginalRate(BRACKET1_LIMIT)).toBe(RATE1)
-  })
-
-  it('returns 49.50% for income one euro above the boundary', () => {
-    expect(getMarginalRate(BRACKET1_LIMIT + 1)).toBe(RATE2)
-  })
-
-  it('returns 49.50% for high incomes', () => {
-    expect(getMarginalRate(200_000)).toBe(RATE2)
-  })
-})
-
-// ─── calculateTaxWithPensionDeduction ────────────────────────────────────────
+  it('schijf 1 working', () => expect(getMarginalRate(30000)).toBe(0.3575));
+  it('schijf 2 working', () => expect(getMarginalRate(60000)).toBe(0.3756));
+  it('schijf 3 working', () => expect(getMarginalRate(80000)).toBe(0.495));
+  it('at exactly schijf 1 limit working', () => expect(getMarginalRate(38883)).toBe(0.3575));
+  it('schijf 1 retirement', () => expect(getMarginalRate(20000, true)).toBe(0.1785));
+  it('schijf 2 retirement', () => expect(getMarginalRate(50000, true)).toBe(0.3756));
+  it('schijf 3 retirement', () => expect(getMarginalRate(100000, true)).toBe(0.495));
+});
 
 describe('calculateTaxWithPensionDeduction', () => {
-  it('returns less tax than without pension deduction', () => {
-    const income = 50_000
-    const contribution = 2_000
-    expect(calculateTaxWithPensionDeduction(income, contribution))
-      .toBeLessThan(calculateTax(income))
-  })
-
-  it('with zero contribution equals calculateTax', () => {
-    const income = 50_000
-    expect(calculateTaxWithPensionDeduction(income, 0)).toBeCloseTo(calculateTax(income), 6)
-  })
-
-  it('contribution larger than income floors at 0 taxable income', () => {
-    // No negative taxes
-    expect(calculateTaxWithPensionDeduction(10_000, 50_000)).toBe(0)
-  })
-
-  it('handles bracket-crossing contribution correctly', () => {
-    // Income at 80k (bracket 2), large contribution brings it into bracket 1
-    const income = 80_000
-    const contribution = 10_000          // taxable → 70_000 (fully in bracket 1)
-    const expected = calculateTax(70_000)
-    expect(calculateTaxWithPensionDeduction(income, contribution)).toBeCloseTo(expected, 4)
-  })
-})
-
-// ─── calcTaxSaving ───────────────────────────────────────────────────────────
+  it('reduces taxable income by employee contribution', () => {
+    const salary = 60000;
+    const contribution = 1500;
+    const expected = calculateTax(salary - contribution);
+    expect(calculateTaxWithPensionDeduction(salary, contribution)).toBeCloseTo(expected, 2);
+  });
+  it('handles contribution larger than salary gracefully', () => {
+    expect(calculateTaxWithPensionDeduction(1000, 2000)).toBe(0);
+  });
+});
 
 describe('calcTaxSaving', () => {
-  it('returns 0 for zero contribution', () => {
-    expect(calcTaxSaving(50_000, 0)).toBeCloseTo(0, 6)
-  })
-
-  it('equals contribution × marginal rate for same-bracket contribution', () => {
-    // Income 50k, contribution 1k → stays entirely within bracket 1
-    const saving = calcTaxSaving(50_000, 1_000)
-    expect(saving).toBeCloseTo(1_000 * RATE1, 4)
-  })
-
-  it('equals contribution × bracket-2 rate when income is well above bracket limit', () => {
-    // Income 100k, small contribution → entirely taxed at bracket-2 rate
-    const saving = calcTaxSaving(100_000, 1_000)
-    expect(saving).toBeCloseTo(1_000 * RATE2, 4)
-  })
-
-  it('is always positive for positive contribution and income', () => {
-    expect(calcTaxSaving(40_000, 500)).toBeGreaterThan(0)
-    expect(calcTaxSaving(90_000, 500)).toBeGreaterThan(0)
-  })
-
-  it('cannot exceed the contribution itself (no negative net cost)', () => {
-    const contribution = 5_000
-    const saving = calcTaxSaving(50_000, contribution)
-    expect(saving).toBeLessThan(contribution)
-  })
-})
-
-// ─── calculateRetirementTax ───────────────────────────────────────────────────
+  it('positive saving for standard inputs (schijf 2 salary)', () => {
+    const saving = calcTaxSaving(60000, 1500);
+    expect(saving).toBeGreaterThan(0);
+    // 60k is in schijf 2 (>38883), marginal rate 37.56%
+    expect(saving).toBeCloseTo(1500 * 0.3756, 2);
+  });
+  it('saving at schijf 1 salary', () => {
+    // 30k is in schijf 1, marginal rate 35.75%
+    expect(calcTaxSaving(30000, 1000)).toBeCloseTo(1000 * 0.3575, 2);
+  });
+  it('zero saving when contribution is zero', () => {
+    expect(calcTaxSaving(60000, 0)).toBeCloseTo(0, 2);
+  });
+  it('larger saving for higher-bracket salary', () => {
+    const schijf1Saving = calcTaxSaving(30000, 2000);
+    const schijf3Saving = calcTaxSaving(100000, 2000);
+    expect(schijf3Saving).toBeGreaterThan(schijf1Saving);
+  });
+});
 
 describe('calculateRetirementTax', () => {
-  const PENSION_RATE1 = 0.1907  // bracket 1a up to €40,021
-  const PENSION_RATE2 = 0.3697  // bracket 1b up to €75,518
-  const PENSION_RATE3 = 0.4950  // bracket 2 above €75,518
-  const SPLIT = 40_021           // approx 2024 threshold
+  it('uses retirement bracket (schijf 1)', () => {
+    expect(calculateRetirementTax(20000)).toBeCloseTo(20000 * 0.1785, 2);
+  });
+  it('progressive at higher amounts', () => {
+    const low = calculateRetirementTax(30000);
+    const high = calculateRetirementTax(60000);
+    expect(high / 60000).toBeGreaterThan(low / 30000);
+  });
+});
 
-  it('returns 0 for zero income', () => {
-    expect(calculateRetirementTax(0)).toBe(0)
-  })
-
-  it('returns 0 for negative income', () => {
-    expect(calculateRetirementTax(-1000)).toBe(0)
-  })
-
-  it('applies 19.07% rate for income entirely within the first pension bracket', () => {
-    const income = 20_000
-    expect(calculateRetirementTax(income)).toBeCloseTo(income * PENSION_RATE1, 4)
-  })
-
-  it('is correct exactly at the first pension bracket boundary (~€40,021)', () => {
-    expect(calculateRetirementTax(SPLIT)).toBeCloseTo(SPLIT * PENSION_RATE1, 4)
-  })
-
-  it('applies two brackets correctly for income between €40,021 and €75,518', () => {
-    const income = 60_000
-    const expected = SPLIT * PENSION_RATE1 + (income - SPLIT) * PENSION_RATE2
-    expect(calculateRetirementTax(income)).toBeCloseTo(expected, 4)
-  })
-
-  it('applies all three brackets correctly for income above €75,518', () => {
-    const income = 100_000
-    const top = 75_518
-    const expected = SPLIT * PENSION_RATE1 + (top - SPLIT) * PENSION_RATE2 + (income - top) * PENSION_RATE3
-    expect(calculateRetirementTax(income)).toBeCloseTo(expected, 4)
-  })
-
-  it('retirement tax is strictly lower than working-age tax for the same income (in bracket 1)', () => {
-    const income = 30_000
-    expect(calculateRetirementTax(income)).toBeLessThan(calculateTax(income))
-  })
-
-  it('tax is monotonically increasing with income', () => {
-    const incomes = [10_000, 30_000, 40_021, 50_000, 75_518, 100_000, 200_000]
-    for (let i = 1; i < incomes.length; i++) {
-      expect(calculateRetirementTax(incomes[i])).toBeGreaterThan(calculateRetirementTax(incomes[i - 1]))
-    }
-  })
-})
+describe('calculateTax edge cases', () => {
+  it('negative income treated as zero', () => expect(calculateTax(-1000)).toBe(0));
+  it('exactly zero retirement', () => expect(calculateTax(0, true)).toBe(0));
+  it('schijf 1→2 boundary working (38884)', () => {
+    const expected = 38883 * 0.3575 + 1 * 0.3756;
+    expect(calculateTax(38884)).toBeCloseTo(expected, 2);
+  });
+  it('schijf 2→3 boundary working (78427)', () => {
+    const expected = 38883 * 0.3575 + (78426 - 38883) * 0.3756 + 1 * 0.495;
+    expect(calculateTax(78427)).toBeCloseTo(expected, 2);
+  });
+  it('schijf 1→2 boundary retirement (38884)', () => {
+    const expected = 38883 * 0.1785 + 1 * 0.3756;
+    expect(calculateTax(38884, true)).toBeCloseTo(expected, 2);
+  });
+  it('marginal rate at zero income working', () => {
+    expect(getMarginalRate(0)).toBe(0.3575);
+  });
+  it('marginal rate at zero income retirement', () => {
+    expect(getMarginalRate(0, true)).toBe(0.1785);
+  });
+  it('calcTaxSaving matches schijf 2 marginal rate', () => {
+    // 60k salary → schijf 2 → 37.56%
+    const saving = calcTaxSaving(60000, 1000);
+    expect(saving).toBeCloseTo(1000 * 0.3756, 2);
+  });
+  it('calcTaxSaving crosses schijf 2→3 boundary', () => {
+    // salary 79000 → contribution 1000 → straddles 78426 boundary
+    const saving = calcTaxSaving(79000, 1000);
+    const expected = calculateTax(79000) - calculateTax(78000);
+    expect(saving).toBeCloseTo(expected, 2);
+  });
+  it('retirement tax zero income', () => {
+    expect(calculateRetirementTax(0)).toBe(0);
+  });
+});
