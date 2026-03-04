@@ -49,7 +49,13 @@ input[type='range']::-moz-range-thumb {
   animation: guide-pulse 1.5s ease-in-out infinite;
 }
 
+/* Lifts a highlighted element above the semi-transparent backdrop (z-50) */
+.guide-spotlight {
+  position: relative;
+  z-index: 60;
+}
+
 @keyframes guide-pulse {
   0%, 100% { outline-color: #3b82f6; box-shadow: 0 0 0 0 rgba(59,130,246,0.3); }
-  50% { outline-color: #93c5fd; box-shadow: 0 0 0 6px rgba(59,130,246,0.1); }
+  50% { outline-color: #93c5fd; box-shadow: 0 0 0 8px rgba(59,130,246,0.08); }
 }

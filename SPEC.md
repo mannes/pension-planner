@@ -282,26 +282,34 @@ Key InfoBoxes (all bilingual NL/EN):
 - Always browser-local; nothing is sent to any server
 
 ### First-Time Interactive Guide
-- **Mobile**: full-width bottom sheet (`fixed bottom-0 left-0 right-0 rounded-t-2xl`)
-- **Desktop (sm+)**: corner panel (`sm:bottom-6 sm:right-6 sm:w-80 sm:rounded-2xl`)
-- Triggered on first visit (localStorage flag: `pension-planner-guide-seen`)
-- **6 steps**: Welcome → Set your situation → Import overview → Nominal vs Real → Reading the results → About & glossary
-- On each step: highlights the relevant UI element via `data-guide-step` attribute + CSS pulse animation (`.guide-highlighted`)
-- Element scrolled into view smoothly on step change; highlights cleaned up on guide close
-- Progress bar + step dots (clickable)
-- Skip button, prev/next navigation
-- Re-triggerable via "Guided tour" button in header
+
+**Step 0 — Welcome modal (blocking):**
+- Full-screen dark backdrop (`bg-black/50 backdrop-blur-sm`, `z-50`)
+- Centered white card with app icon, title, body text
+- Two buttons: **Start tour** (→ step 1) and **Skip** (dismisses)
+- Forces user attention on first visit — cannot be missed
+
+**Steps 1–5 — Floating panel + spotlight:**
+- **Mobile**: full-width bottom sheet (`fixed bottom-0 left-0 right-0 rounded-t-2xl`, `z-70`)
+- **Desktop (sm+)**: corner panel (`sm:bottom-6 sm:right-6 sm:w-96 sm:rounded-2xl`)
+- Semi-transparent backdrop (`bg-black/30`, `z-50`, pointer-events-none) for steps that highlight in-page elements
+- No backdrop for step 3 (target lives in sticky header above backdrop)
+- Highlighted element gets `.guide-highlighted` (pulsing outline) + `.guide-spotlight` (`position:relative; z-index:60` — lifts element above backdrop)
+- `scrollIntoView({ block: 'start' })` on step change (80 ms delay so backdrop renders first)
+- Step counter pill, clickable progress dots, prev/next/skip/finish buttons
+- Re-triggerable via "Guided tour" button in header — uses `CustomEvent('pension-guide-start')`, **no page reload**
+- localStorage flag: `pension-planner-guide-seen`
 
 **Step → element mapping:**
 
-| Step | Highlights element (`data-guide-step`) |
-|------|----------------------------------------|
-| 0 — Welcome              | none                        |
-| 1 — Set situation        | `salary`                    |
-| 2 — Import overview      | `pensioenoverzicht-upload`  |
-| 3 — Nominal vs Real      | `real-toggle`               |
-| 4 — Results              | `results`                   |
-| 5 — About & glossary     | `about-button`              |
+| Step | Title                  | `data-guide-step`  | Notes                          |
+|------|------------------------|--------------------|--------------------------------|
+| 0    | Welcome                | —                  | Blocking modal                 |
+| 1    | Enter your details     | `inputs`           | InputPanel wrapper div         |
+| 2    | Three scenarios        | `results`          | SummaryTable wrapper div       |
+| 3    | Nominal or real?       | `real-toggle`      | Header button; no backdrop     |
+| 4    | Tax benefit            | `tax`              | TaxLeveragePanel wrapper div   |
+| 5    | Glossary               | `glossary`         | GlossaryPanel wrapper div      |
 
 ---
 

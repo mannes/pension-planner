@@ -121,6 +121,7 @@ function AppInner() {
             {/* Real/Nominal toggle */}
             <button
               type="button"
+              data-guide-step="real-toggle"
               onClick={() => setShowReal((v) => !v)}
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
             >
@@ -168,7 +169,7 @@ function AppInner() {
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left sidebar: inputs */}
-          <div className="lg:w-80 flex-shrink-0">
+          <div className="lg:w-80 flex-shrink-0" data-guide-step="inputs">
             <InputPanel
               params={params}
               onChange={handleParamsChange}
@@ -182,15 +183,17 @@ function AppInner() {
           {/* Right content area */}
           <div className="flex-1 space-y-6">
             {/* Summary table */}
-            <SummaryTable
-              results={results}
-              showReal={showReal}
-              inflationRate={params.inflationRate}
-              selectedScenario={selectedScenario}
-              onScenarioChange={setSelectedScenario}
-              annuityRate={params.annuityRate}
-              payoutYears={params.payoutYears}
-            />
+            <div data-guide-step="results">
+              <SummaryTable
+                results={results}
+                showReal={showReal}
+                inflationRate={params.inflationRate}
+                selectedScenario={selectedScenario}
+                onScenarioChange={setSelectedScenario}
+                annuityRate={params.annuityRate}
+                payoutYears={params.payoutYears}
+              />
+            </div>
 
             {/* Income comparison */}
             <IncomeComparisonPanel
@@ -204,7 +207,9 @@ function AppInner() {
             />
 
             {/* Tax leverage */}
-            <TaxLeveragePanel params={params} />
+            <div data-guide-step="tax">
+              <TaxLeveragePanel params={params} />
+            </div>
 
             {/* Contribution breakdown chart */}
             <ContributionBreakdown results={results} />
@@ -227,7 +232,9 @@ function AppInner() {
             />
 
             {/* Pension glossary */}
-            <GlossaryPanel />
+            <div data-guide-step="glossary">
+              <GlossaryPanel />
+            </div>
           </div>
         </div>
       </main>
