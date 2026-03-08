@@ -125,6 +125,7 @@ export function TaxLeveragePanel({ params }: TaxLeveragePanelProps) {
               <p className="text-xs font-semibold text-violet-700 mb-2">
                 {t.tax.extraSavings}: {fmt(params.extraSavingsMonthly)}/mnd
               </p>
+              <WaterfallRow label={t.tax.extraGross}      value={extraAnnual}     maxValue={extraAnnual} variant="default" />
               <WaterfallRow label={t.tax.extraTaxBenefit} value={extraTaxBenefit} maxValue={extraAnnual} variant="positive" indent />
               <WaterfallRow label={t.tax.extraNetCost}    value={extraNetCost}    maxValue={extraAnnual} variant="total" />
             </div>

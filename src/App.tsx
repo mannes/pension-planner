@@ -11,7 +11,7 @@ import { AnnuityChart } from './components/AnnuityChart';
 import { AISlopWarning } from './components/AISlopWarning';
 import { FirstTimeGuide, useStartGuide } from './components/FirstTimeGuide';
 import { runSimulation } from './logic/simulation';
-import { DEFAULT_PARAMS, type SimParams } from './types';
+import { DEFAULT_PARAMS, AOW_SINGLE_DEFAULT, AOW_PARTNER_DEFAULT, type SimParams } from './types';
 import type { PensioenoverzichtData } from './logic/parsePensioenoverzicht';
 
 const STORAGE_KEY = 'pension-planner-params';
@@ -54,12 +54,16 @@ function AppInner() {
 
   const handleParamsChange = useCallback((p: SimParams) => {
     let finalParams = p;
-    // If partner status changed and we have a file, sync aowMonthly from the file
-    if (pensioenoverzicht && p.aowPartnerStatus !== params.aowPartnerStatus) {
-      const aow = p.aowPartnerStatus === 'partner' && pensioenoverzicht.aowSamenwonend != null
-        ? pensioenoverzicht.aowSamenwonend
-        : pensioenoverzicht.aowAlleenstaand;
-      if (aow > 0) finalParams = { ...p, aowMonthly: Math.round(aow) };
+    // If partner status changed, sync aowMonthly from file or fall back to defaults
+    if (p.aowPartnerStatus !== params.aowPartnerStatus) {
+      if (pensioenoverzicht) {
+        const aow = p.aowPartnerStatus === 'partner' && pensioenoverzicht.aowSamenwonend != null
+          ? pensioenoverzicht.aowSamenwonend
+          : pensioenoverzicht.aowAlleenstaand;
+        if (aow > 0) finalParams = { ...p, aowMonthly: Math.round(aow) };
+      } else {
+        finalParams = { ...p, aowMonthly: p.aowPartnerStatus === 'partner' ? AOW_PARTNER_DEFAULT : AOW_SINGLE_DEFAULT };
+      }
     }
     setParams(finalParams);
     if (persist) {

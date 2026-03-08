@@ -111,6 +111,7 @@ export interface Translations {
     totalFunded: string;
     leverageRatio: string;
     extraSavings: string;
+    extraGross: string;
     extraTaxBenefit: string;
     extraNetCost: string;
     realModeNote: string;
@@ -296,6 +297,7 @@ const nl: Translations = {
     totalFunded: 'Totaal gefinancierd',
     leverageRatio: 'Hefboomwerking',
     extraSavings: 'Extra sparen (pijler 3)',
+    extraGross: 'Bruto inleg pijler 3',
     extraTaxBenefit: 'Fiscaal voordeel pijler 3',
     extraNetCost: 'Netto kosten extra sparen',
     realModeNote: 'Bedragen zijn nominaal in jaar 1; inflatie heeft hierop geen effect.',
@@ -516,6 +518,7 @@ const en: Translations = {
     totalFunded: 'Total funded',
     leverageRatio: 'Leverage ratio',
     extraSavings: 'Extra savings (pillar 3)',
+    extraGross: 'Gross pillar 3 deposit',
     extraTaxBenefit: 'Tax benefit pillar 3',
     extraNetCost: 'Net cost of extra savings',
     realModeNote: 'Amounts are nominal in year 1; inflation has no effect here.',

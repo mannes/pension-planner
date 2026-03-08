@@ -35,6 +35,9 @@ export interface YearlyResult {
 export const AOW_AGE = 68;
 /** AOW franchise per 1 january 2026 (Centraal Aanspreekpunt Pensioenen, V&A 25-008) */
 export const FRANCHISE_2026 = 19172;
+/** Default AOW amounts (approx. Jan 2026, SVB) when no pension overview file is loaded */
+export const AOW_SINGLE_DEFAULT = 1650;
+export const AOW_PARTNER_DEFAULT = 1200;
 export const MAX_PENSIOENGEVEND_LOON = 137800;
 
 export const DEFAULT_PARAMS: SimParams = {
